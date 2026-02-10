@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的喝水紀錄</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+        .app-container {
+            background: white;
+            width: 90%;
+            max-width: 400px;
+            padding: 2rem;
+            border-radius: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #2c3e50; }
+        .date { color: #7f8c8d; margin-bottom: 2rem; font-size: 0.9rem; }
+        
+        .progress-circle {
+            width: 150px;
+            height: 150px;
+            background: #e0f7fa;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 2rem;
+            border: 5px solid #00bcd4;
+        }
+        .current-ml { font-size: 2rem; font-weight: bold; color: #0097a7; }
+        .label { font-size: 0.8rem; color: #006064; }
+
+        .btn-group { display: flex; gap: 10px; justify-content: center; margin-bottom: 2rem; }
+        .btn {
+            border: none;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: bold;
+        }
+        .btn-add { background-color: #00bcd4; color: white; flex: 1; }
+        .btn-add:active { transform: scale(0.95); background-color: #00acc1; }
+
+        .history { text-align: left; max-height: 200px; overflow-y: auto; }
+        .history h3 { font-size: 1rem; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .log-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f9f9f9;
+            font-size: 0.9rem;
+        }
+        .log-time { color: #95a5a6; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <h1>💧 喝水紀錄</h1>
+    <div class="date" id="dateDisplay">載入中...</div>
+
+    <div class="progress-circle">
+        <span class="current-ml" id="totalAmount">0</span>
+        <span class="label">ml / 今天</span>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn btn-add" onclick="addWater(200)">+200ml</button>
+        <button class="btn btn-add" onclick="addWater(500)">+500ml</button>
+    </div>
+
+    <div class="history">
+        <h3>今日紀錄</h3>
+        <div id="logList">
+            <div style="text-align:center; color:#ccc; padding:10px;">讀取資料中...</div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+  // 引入 Firebase SDK
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, query, where, onSnapshot, orderBy, Timestamp } 
+    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  // 你的 Firebase 設定 (我已經幫你填好了)
+  const firebaseConfig = {
+    apiKey: "AIzaSyDB3WJa1pmBcjxk0EKQM6is4z2n5oCY0W4",
+    authDomain: "watertracker-1974e.firebaseapp.com",
+    projectId: "watertracker-1974e",
+    storageBucket: "watertracker-1974e.firebasestorage.app",
+    messagingSenderId: "123716041712",
+    appId: "1:123716041712:web:a94050f8faf9bdac9b7b35",
+    measurementId: "G-6ZMFXH2M7Y"
+  };
+
+  // 初始化 Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // 取得今天的日期字串 (YYYY-MM-DD)
+  function getTodayString() {
+      const d = new Date();
+      return d.toISOString().split('T')[0];
+  }
+  
+  document.getElementById('dateDisplay').innerText = new Date().toLocaleDateString();
+
+  const totalDisplay = document.getElementById('totalAmount');
+  const logList = document.getElementById('logList');
+
+  // 即時監聽資料庫
+  const q = query(
+      collection(db, "water_logs"), 
+      where("date", "==", getTodayString()), 
+      orderBy("timestamp", "desc")
+  );
+
+  onSnapshot(q, (snapshot) => {
+      let total = 0;
+      let html = '';
+      
+      snapshot.forEach((doc) => {
+          const data = doc.data();
+          total += data.amount;
+          
+          const dateObj = data.timestamp.toDate();
+          const timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + 
+                          dateObj.getMinutes().toString().padStart(2, '0');
+
+          html += `
+            <div class="log-item">
+                <span class="log-time">${timeStr}</span>
+                <span>${data.amount} ml</span>
+            </div>
+          `;
+      });
+
+      totalDisplay.innerText = total;
+      logList.innerHTML = html || '<div style="text-align:center; color:#ccc; padding:10px;">今天還沒喝水喔</div>';
+  });
+
+  // 新增喝水紀錄
+  window.addWater = async (amount) => {
+      try {
+          await addDoc(collection(db, "water_logs"), {
+              amount: amount,
+              date: getTodayString(),
+              timestamp: Timestamp.now()
+          });
+      } catch (e) {
+          console.error("Error adding document: ", e);
+          alert("上傳失敗，請檢查網路或 Firebase 設定");
+      }
+  }
+</script>
+
+</body>
+</html>
