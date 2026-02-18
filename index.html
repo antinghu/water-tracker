@@ -93,12 +93,10 @@
 </div>
 
 <script type="module">
-  // 引入 Firebase SDK
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getFirestore, collection, addDoc, query, where, onSnapshot, orderBy, Timestamp } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // 你的 Firebase 設定 (我已經幫你填好了)
   const firebaseConfig = {
     apiKey: "AIzaSyDB3WJa1pmBcjxk0EKQM6is4z2n5oCY0W4",
     authDomain: "watertracker-1974e.firebaseapp.com",
@@ -109,39 +107,50 @@
     measurementId: "G-6ZMFXH2M7Y"
   };
 
-  // 初始化 Firebase
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // 取得今天的日期字串 (YYYY-MM-DD)
   function getTodayString() {
+      // 簡單處理時區問題，確保拿到的是當地日期的 YYYY-MM-DD
       const d = new Date();
-      return d.toISOString().split('T')[0];
+      const offset = d.getTimezoneOffset() * 60000;
+      const localDate = new Date(d.getTime() - offset);
+      return localDate.toISOString().split('T')[0];
   }
   
-  document.getElementById('dateDisplay').innerText = new Date().toLocaleDateString();
+  document.getElementById('dateDisplay').innerText = getTodayString();
 
   const totalDisplay = document.getElementById('totalAmount');
   const logList = document.getElementById('logList');
 
-  // 即時監聽資料庫
+  // 修改版：暫時拿掉 orderBy，避免需要建立索引導致報錯
   const q = query(
       collection(db, "water_logs"), 
-      where("date", "==", getTodayString()), 
-      orderBy("timestamp", "desc")
+      where("date", "==", getTodayString())
+      // orderBy("timestamp", "desc")  <-- 先註解掉這一行
   );
 
+  // 加上錯誤監聽，如果有錯會跳出視窗告訴你
   onSnapshot(q, (snapshot) => {
       let total = 0;
       let html = '';
       
+      // 這裡改用 JavaScript 來做排序 (新到舊)
+      const docs = [];
       snapshot.forEach((doc) => {
-          const data = doc.data();
+          docs.push(doc.data());
+      });
+      docs.sort((a, b) => b.timestamp - a.timestamp); // 手動排序
+
+      docs.forEach((data) => {
           total += data.amount;
           
-          const dateObj = data.timestamp.toDate();
-          const timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + 
-                          dateObj.getMinutes().toString().padStart(2, '0');
+          let timeStr = '--:--';
+          if (data.timestamp) {
+              const dateObj = data.timestamp.toDate();
+              timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + 
+                        dateObj.getMinutes().toString().padStart(2, '0');
+          }
 
           html += `
             <div class="log-item">
@@ -153,19 +162,30 @@
 
       totalDisplay.innerText = total;
       logList.innerHTML = html || '<div style="text-align:center; color:#ccc; padding:10px;">今天還沒喝水喔</div>';
+  }, (error) => {
+      // 如果還有錯，這裡會顯示出來！
+      console.error(error);
+      alert("讀取失敗：" + error.message);
   });
 
-  // 新增喝水紀錄
   window.addWater = async (amount) => {
       try {
+          // 增加一個簡單的 Loading 提示
+          const btn = event.target;
+          const originalText = btn.innerText;
+          btn.innerText = "...";
+          
           await addDoc(collection(db, "water_logs"), {
               amount: amount,
               date: getTodayString(),
               timestamp: Timestamp.now()
           });
+          
+          btn.innerText = originalText;
+          // alert("紀錄成功！"); // 覺得太吵可以把這行拿掉
       } catch (e) {
           console.error("Error adding document: ", e);
-          alert("上傳失敗，請檢查網路或 Firebase 設定");
+          alert("上傳失敗：" + e.message);
       }
   }
 </script>
