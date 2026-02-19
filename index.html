@@ -15,6 +15,7 @@
             min-height: 100vh;
             margin: 0;
             color: #333;
+            padding: 20px 0; /* 讓畫面上下有點空間 */
         }
         .app-container {
             background: white;
@@ -26,7 +27,7 @@
             text-align: center;
         }
         h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #2c3e50; }
-        .date { color: #7f8c8d; margin-bottom: 2rem; font-size: 0.9rem; }
+        .date { color: #7f8c8d; margin-bottom: 1.5rem; font-size: 0.9rem; }
         
         .progress-circle {
             width: 150px;
@@ -37,26 +38,40 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            margin: 0 auto 2rem;
+            margin: 0 auto 1.5rem;
             border: 5px solid #00bcd4;
         }
         .current-ml { font-size: 2rem; font-weight: bold; color: #0097a7; }
         .label { font-size: 0.8rem; color: #006064; }
 
-        .btn-group { display: flex; gap: 10px; justify-content: center; margin-bottom: 2rem; }
+        /* 按鈕網格排版 */
+        .btn-group { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 10px; 
+            margin-bottom: 1rem; 
+        }
         .btn {
             border: none;
-            padding: 12px 20px;
+            padding: 12px 10px;
             border-radius: 12px;
-            font-size: 1rem;
+            font-size: 0.95rem;
             cursor: pointer;
             transition: 0.2s;
             font-weight: bold;
+            flex: 1 1 45%; /* 讓按鈕並排，約佔一半寬度 */
+            box-sizing: border-box;
         }
-        .btn-add { background-color: #00bcd4; color: white; flex: 1; }
-        .btn-add:active { transform: scale(0.95); background-color: #00acc1; }
+        .btn:active { transform: scale(0.95); }
+        
+        /* 各種按鈕的顏色 */
+        .btn-add { background-color: #00bcd4; color: white; }
+        .btn-add-special { background-color: #00acc1; color: white; }
+        .btn-custom { background-color: #f39c12; color: white; flex: 1 1 100%; } /* 手動輸入佔滿整行 */
+        .btn-undo { background-color: #95a5a6; color: white; }
+        .btn-clear { background-color: #e74c3c; color: white; }
 
-        .history { text-align: left; max-height: 200px; overflow-y: auto; }
+        .history { text-align: left; max-height: 200px; overflow-y: auto; margin-top: 1.5rem;}
         .history h3 { font-size: 1rem; border-bottom: 1px solid #eee; padding-bottom: 5px; }
         .log-item {
             display: flex;
@@ -66,6 +81,7 @@
             font-size: 0.9rem;
         }
         .log-time { color: #95a5a6; }
+        .log-name { font-size: 0.8em; color: #b2bec3; margin-left: 5px; }
     </style>
 </head>
 <body>
@@ -80,8 +96,16 @@
     </div>
 
     <div class="btn-group">
-        <button class="btn btn-add" onclick="addWater(200)">+200ml</button>
-        <button class="btn btn-add" onclick="addWater(500)">+500ml</button>
+        <button class="btn btn-add" onclick="addWater(200, '杯子')">+ 200 ml</button>
+        <button class="btn btn-add" onclick="addWater(500, '水瓶')">+ 500 ml</button>
+        <button class="btn btn-add-special" onclick="addWater(473, '粉紅色Fellow')">粉紅色Fellow</button>
+        <button class="btn btn-add-special" onclick="addWater(700, '大象杯')">大象杯 700ml</button>
+        <button class="btn btn-custom" onclick="customInput()">✏️ 手動輸入</button>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn btn-undo" onclick="undoLast()">↩️ 返回上一步</button>
+        <button class="btn btn-clear" onclick="clearToday()">🗑️ 清除今日記錄</button>
     </div>
 
     <div class="history">
@@ -94,7 +118,8 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, query, where, onSnapshot, orderBy, Timestamp } 
+  // 引入了 deleteDoc 和 doc 來負責刪除資料
+  import { getFirestore, collection, addDoc, query, where, onSnapshot, Timestamp, deleteDoc, doc } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -110,8 +135,10 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
+  // 儲存當前畫面上的資料，方便做「返回上一步」
+  window.currentDocs = [];
+
   function getTodayString() {
-      // 簡單處理時區問題，確保拿到的是當地日期的 YYYY-MM-DD
       const d = new Date();
       const offset = d.getTimezoneOffset() * 60000;
       const localDate = new Date(d.getTime() - offset);
@@ -123,24 +150,24 @@
   const totalDisplay = document.getElementById('totalAmount');
   const logList = document.getElementById('logList');
 
-  // 修改版：暫時拿掉 orderBy，避免需要建立索引導致報錯
   const q = query(
       collection(db, "water_logs"), 
       where("date", "==", getTodayString())
-      // orderBy("timestamp", "desc")  <-- 先註解掉這一行
   );
 
-  // 加上錯誤監聽，如果有錯會跳出視窗告訴你
   onSnapshot(q, (snapshot) => {
       let total = 0;
       let html = '';
       
-      // 這裡改用 JavaScript 來做排序 (新到舊)
       const docs = [];
-      snapshot.forEach((doc) => {
-          docs.push(doc.data());
+      snapshot.forEach((docSnap) => {
+          // 把資料庫的 id 也存起來，刪除的時候才找得到
+          docs.push({ id: docSnap.id, ...docSnap.data() });
       });
-      docs.sort((a, b) => b.timestamp - a.timestamp); // 手動排序
+      docs.sort((a, b) => b.timestamp - a.timestamp); 
+
+      // 更新全域變數
+      window.currentDocs = docs;
 
       docs.forEach((data) => {
           total += data.amount;
@@ -151,10 +178,13 @@
               timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + 
                         dateObj.getMinutes().toString().padStart(2, '0');
           }
+          
+          // 如果有記錄容器名稱，就顯示出來
+          let itemName = data.itemName ? `<span class="log-name">(${data.itemName})</span>` : '';
 
           html += `
             <div class="log-item">
-                <span class="log-time">${timeStr}</span>
+                <div><span class="log-time">${timeStr}</span> ${itemName}</div>
                 <span>${data.amount} ml</span>
             </div>
           `;
@@ -163,29 +193,74 @@
       totalDisplay.innerText = total;
       logList.innerHTML = html || '<div style="text-align:center; color:#ccc; padding:10px;">今天還沒喝水喔</div>';
   }, (error) => {
-      // 如果還有錯，這裡會顯示出來！
       console.error(error);
       alert("讀取失敗：" + error.message);
   });
 
-  window.addWater = async (amount) => {
+  // 1. 新增喝水功能 (加入 itemName 參數)
+  window.addWater = async (amount, itemName = '') => {
       try {
-          // 增加一個簡單的 Loading 提示
-          const btn = event.target;
-          const originalText = btn.innerText;
-          btn.innerText = "...";
-          
           await addDoc(collection(db, "water_logs"), {
               amount: amount,
+              itemName: itemName, // 紀錄是用什麼杯子喝的
               date: getTodayString(),
               timestamp: Timestamp.now()
           });
-          
-          btn.innerText = originalText;
-          // alert("紀錄成功！"); // 覺得太吵可以把這行拿掉
       } catch (e) {
-          console.error("Error adding document: ", e);
           alert("上傳失敗：" + e.message);
+      }
+  }
+
+  // 2. 手動輸入功能
+  window.customInput = () => {
+      // 跳出輸入框詢問使用者
+      let input = prompt("請輸入喝水量 (ml)：", "300");
+      if (input !== null && input.trim() !== "") {
+          let amount = parseInt(input, 10);
+          // 檢查是不是正確的數字
+          if (!isNaN(amount) && amount > 0) {
+              window.addWater(amount, '手動輸入');
+          } else {
+              alert("請輸入大於 0 的有效數字！");
+          }
+      }
+  }
+
+  // 3. 返回上一步功能 (刪除最新的一筆)
+  window.undoLast = async () => {
+      if (window.currentDocs.length > 0) {
+          const lastRecord = window.currentDocs[0]; // 陣列第一筆就是最新的
+          
+          // 再次確認對話框
+          let confirmDelete = confirm(`確定要刪除剛才喝的 ${lastRecord.amount} ml 嗎？`);
+          if (confirmDelete) {
+              try {
+                  await deleteDoc(doc(db, "water_logs", lastRecord.id));
+              } catch (e) {
+                  alert("刪除失敗：" + e.message);
+              }
+          }
+      } else {
+          alert("今天還沒有喝水記錄可以刪除喔！");
+      }
+  }
+
+  // 4. 清除今日所有記錄
+  window.clearToday = async () => {
+      if (window.currentDocs.length > 0) {
+          let confirmClear = confirm("⚠️ 警告：確定要清除今天的『所有』喝水記錄嗎？這無法復原喔！");
+          if (confirmClear) {
+              try {
+                  // 利用迴圈把今天的資料一筆一筆刪除
+                  for (let i = 0; i < window.currentDocs.length; i++) {
+                      await deleteDoc(doc(db, "water_logs", window.currentDocs[i].id));
+                  }
+              } catch (e) {
+                  alert("清除過程發生錯誤：" + e.message);
+              }
+          }
+      } else {
+          alert("今天本來就沒有記錄喔！");
       }
   }
 </script>
