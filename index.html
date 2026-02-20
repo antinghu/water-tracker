@@ -2,267 +2,485 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>我的喝水紀錄</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* --- 粉嫩色系定義 --- */
+        :root {
+            --bg-color: #fff0f5;      /* 淡淡的薰衣草/櫻花背景 */
+            --primary: #ff8da1;       /* 主色調：柔和粉紅 */
+            --primary-dark: #ff6b8b;  /* 主色調：深粉紅(按壓時) */
+            --secondary: #ffb6c1;     /* 次色調：淺粉紅 */
+            --text-dark: #5c4044;     /* 深咖啡色文字，比純黑柔和 */
+            --text-light: #9fa6b2;    /* 淺灰色文字 */
+            --white: #ffffff;
+        }
+
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background-color: #f0f4f8;
+            background-color: var(--bg-color);
+            margin: 0;
+            color: var(--text-dark);
+            /* 預留底部導覽列的空間 */
+            padding-bottom: 70px; 
             display: flex;
             justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            color: #333;
-            padding: 20px 0; /* 讓畫面上下有點空間 */
         }
+
         .app-container {
-            background: white;
-            width: 90%;
-            max-width: 400px;
-            padding: 2rem;
-            border-radius: 24px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            text-align: center;
+            width: 100%;
+            max-width: 450px;
+            min-height: 100vh;
+            background: transparent;
         }
-        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #2c3e50; }
-        .date { color: #7f8c8d; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+        /* --- 頁面切換設定 --- */
+        .page {
+            display: none;
+            padding: 1.5rem;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .page.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- UI 元件設計 --- */
+        .card {
+            background: var(--white);
+            padding: 1.5rem;
+            border-radius: 24px;
+            box-shadow: 0 8px 20px rgba(255, 182, 193, 0.2);
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-dark); }
+        .date-subtitle { color: var(--text-light); margin-bottom: 1rem; font-size: 0.9rem; }
         
         .progress-circle {
-            width: 150px;
-            height: 150px;
-            background: #e0f7fa;
+            width: 160px;
+            height: 160px;
+            background: #fff5f7;
             border-radius: 50%;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             margin: 0 auto 1.5rem;
-            border: 5px solid #00bcd4;
+            border: 8px solid var(--secondary);
+            box-shadow: inset 0 4px 10px rgba(0,0,0,0.05);
         }
-        .current-ml { font-size: 2rem; font-weight: bold; color: #0097a7; }
-        .label { font-size: 0.8rem; color: #006064; }
+        .current-ml { font-size: 2.2rem; font-weight: bold; color: var(--primary-dark); }
+        .label { font-size: 0.85rem; color: var(--text-light); }
 
-        /* 按鈕網格排版 */
-        .btn-group { 
-            display: flex; 
-            flex-wrap: wrap; 
-            gap: 10px; 
-            margin-bottom: 1rem; 
-        }
+        /* --- 按鈕設計 --- */
+        .btn-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 1rem; }
         .btn {
             border: none;
             padding: 12px 10px;
-            border-radius: 12px;
+            border-radius: 16px;
             font-size: 0.95rem;
             cursor: pointer;
             transition: 0.2s;
             font-weight: bold;
-            flex: 1 1 45%; /* 讓按鈕並排，約佔一半寬度 */
+            flex: 1 1 45%;
             box-sizing: border-box;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
         .btn:active { transform: scale(0.95); }
         
-        /* 各種按鈕的顏色 */
-        .btn-add { background-color: #00bcd4; color: white; }
-        .btn-add-special { background-color: #00acc1; color: white; }
-        .btn-custom { background-color: #f39c12; color: white; flex: 1 1 100%; } /* 手動輸入佔滿整行 */
-        .btn-undo { background-color: #95a5a6; color: white; }
-        .btn-clear { background-color: #e74c3c; color: white; }
+        .btn-add { background-color: var(--primary); color: white; }
+        .btn-add-special { background-color: var(--secondary); color: var(--text-dark); }
+        .btn-custom { background-color: var(--white); color: var(--primary-dark); border: 2px solid var(--primary); flex: 1 1 100%; }
+        .btn-undo { background-color: #e0e0e0; color: #555; }
+        .btn-clear { background-color: #ff9e9e; color: white; }
 
-        .history { text-align: left; max-height: 200px; overflow-y: auto; margin-top: 1.5rem;}
-        .history h3 { font-size: 1rem; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        /* --- 歷史紀錄清單 --- */
+        .history-section { text-align: left; }
+        .history-section h3 { font-size: 1rem; border-bottom: 2px solid var(--bg-color); padding-bottom: 8px; color: var(--text-dark); }
         .log-item {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #f9f9f9;
-            font-size: 0.9rem;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--bg-color);
+            font-size: 0.95rem;
         }
-        .log-time { color: #95a5a6; }
-        .log-name { font-size: 0.8em; color: #b2bec3; margin-left: 5px; }
+        .log-time { color: var(--text-light); font-weight: bold; }
+        .log-name { font-size: 0.8em; color: var(--primary); margin-left: 5px; background: var(--bg-color); padding: 2px 6px; border-radius: 8px; }
+
+        /* --- 月曆頁面專用 --- */
+        .chart-container { position: relative; height: 200px; width: 100%; margin-bottom: 1.5rem; }
+        .date-picker-wrapper { text-align: center; margin-bottom: 1rem; }
+        input[type="date"] {
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid var(--secondary);
+            font-family: inherit;
+            color: var(--text-dark);
+            background: var(--bg-color);
+            outline: none;
+        }
+
+        /* --- 底部導覽列 --- */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--white);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 -2px 15px rgba(0,0,0,0.05);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            z-index: 1000;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 0.75rem;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+        .nav-item.active {
+            color: var(--primary-dark);
+            font-weight: bold;
+        }
+        .nav-icon { font-size: 1.5rem; margin-bottom: 3px; }
+
     </style>
 </head>
 <body>
 
 <div class="app-container">
-    <h1>💧 喝水紀錄</h1>
-    <div class="date" id="dateDisplay">載入中...</div>
 
-    <div class="progress-circle">
-        <span class="current-ml" id="totalAmount">0</span>
-        <span class="label">ml / 今天</span>
-    </div>
-
-    <div class="btn-group">
-        <button class="btn btn-add" onclick="addWater(200, '杯子')">+ 200 ml</button>
-        <button class="btn btn-add" onclick="addWater(500, '水瓶')">+ 500 ml</button>
-        <button class="btn btn-add-special" onclick="addWater(473, '粉紅色Fellow')">粉紅色Fellow</button>
-        <button class="btn btn-add-special" onclick="addWater(700, '大象杯')">大象杯 700ml</button>
-        <button class="btn btn-custom" onclick="customInput()">✏️ 手動輸入</button>
-    </div>
-
-    <div class="btn-group">
-        <button class="btn btn-undo" onclick="undoLast()">↩️ 返回上一步</button>
-        <button class="btn btn-clear" onclick="clearToday()">🗑️ 清除今日記錄</button>
-    </div>
-
-    <div class="history">
-        <h3>今日紀錄</h3>
-        <div id="logList">
-            <div style="text-align:center; color:#ccc; padding:10px;">讀取資料中...</div>
+    <div id="homePage" class="page active">
+        <div class="card">
+            <h1>🌸 歡迎回來</h1>
+            <div class="date-subtitle" id="homeDateDisplay">載入中...</div>
+            
+            <div class="progress-circle" style="width: 200px; height: 200px; border-width: 12px;">
+                <span class="current-ml" id="homeTotalAmount" style="font-size: 2.8rem;">0</span>
+                <span class="label">ml / 今天</span>
+            </div>
+            
+            <p style="color: var(--text-light); font-size: 0.9rem;">隨時補充水分，讓身體維持好狀態！</p>
+            <button class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem; margin-top: 10px;" onclick="switchTab('record')">
+                💧 點我喝水
+            </button>
         </div>
     </div>
+
+    <div id="recordPage" class="page">
+        <div class="card">
+            <h1>💧 新增紀錄</h1>
+            <div class="progress-circle">
+                <span class="current-ml" id="recordTotalAmount">0</span>
+                <span class="label">ml</span>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-add" onclick="addWater(200, '杯子')">+ 200 ml</button>
+                <button class="btn btn-add" onclick="addWater(500, '水瓶')">+ 500 ml</button>
+                <button class="btn btn-add-special" onclick="addWater(473, 'Fellow')">Fellow 473 ml</button>
+                <button class="btn btn-add-special" onclick="addWater(700, '大象杯')">大象杯 700 ml</button>
+                <button class="btn btn-custom" onclick="customInput()">✏️ 手動輸入</button>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-undo" onclick="undoLast()">↩️ 上一步</button>
+                <button class="btn btn-clear" onclick="clearToday()">🗑️ 清除今日</button>
+            </div>
+        </div>
+
+        <div class="card history-section">
+            <h3>今日紀錄</h3>
+            <div id="logList">
+                <div style="text-align:center; color:#ccc; padding:10px;">讀取資料中...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="calendarPage" class="page">
+        <div class="card">
+            <h1>📅 喝水統計</h1>
+            <p class="date-subtitle">本月每日喝水量</p>
+            
+            <div class="chart-container">
+                <canvas id="waterChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card history-section">
+            <div class="date-picker-wrapper">
+                <label for="historyDate" style="font-weight:bold; color:var(--text-dark);">查詢指定日期：</label><br><br>
+                <input type="date" id="historyDate" onchange="fetchHistoryByDate()">
+            </div>
+            
+            <h3>當日紀錄總覽</h3>
+            <div style="text-align:center; font-size:1.5rem; font-weight:bold; color:var(--primary); margin: 10px 0;" id="historyTotal">0 ml</div>
+            
+            <div id="historyLogList">
+                <div style="text-align:center; color:var(--text-light); padding:10px;">請選擇日期查看紀錄</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <button class="nav-item active" onclick="switchTab('home')" id="tab-home">
+            <span class="nav-icon">🏠</span>
+            <span>首頁</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('record')" id="tab-record">
+            <span class="nav-icon">💧</span>
+            <span>紀錄</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('calendar')" id="tab-calendar">
+            <span class="nav-icon">📅</span>
+            <span>月曆</span>
+        </button>
+    </div>
+
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  // 引入了 deleteDoc 和 doc 來負責刪除資料
-  import { getFirestore, collection, addDoc, query, where, onSnapshot, Timestamp, deleteDoc, doc } 
+  import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, deleteDoc, doc } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+  // 你的 Firebase 設定
   const firebaseConfig = {
     apiKey: "AIzaSyDB3WJa1pmBcjxk0EKQM6is4z2n5oCY0W4",
     authDomain: "watertracker-1974e.firebaseapp.com",
     projectId: "watertracker-1974e",
     storageBucket: "watertracker-1974e.firebasestorage.app",
     messagingSenderId: "123716041712",
-    appId: "1:123716041712:web:a94050f8faf9bdac9b7b35",
-    measurementId: "G-6ZMFXH2M7Y"
+    appId: "1:123716041712:web:a94050f8faf9bdac9b7b35"
   };
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // 儲存當前畫面上的資料，方便做「返回上一步」
   window.currentDocs = [];
+  let waterChartInstance = null; // 存放圖表實例
 
+  // --- 工具函數 ---
   function getTodayString() {
       const d = new Date();
       const offset = d.getTimezoneOffset() * 60000;
-      const localDate = new Date(d.getTime() - offset);
-      return localDate.toISOString().split('T')[0];
+      return new Date(d.getTime() - offset).toISOString().split('T')[0];
   }
   
-  document.getElementById('dateDisplay').innerText = getTodayString();
+  // 初始化日期顯示
+  const todayStr = getTodayString();
+  document.getElementById('homeDateDisplay').innerText = new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'long' });
+  document.getElementById('historyDate').value = todayStr; // 設定日期選擇器預設為今天
+  document.getElementById('historyDate').max = todayStr;   // 不能選未來的日子
 
-  const totalDisplay = document.getElementById('totalAmount');
-  const logList = document.getElementById('logList');
+  // --- 頁面切換邏輯 ---
+  window.switchTab = (tabName) => {
+      // 隱藏所有頁面
+      document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+      // 移除所有按鈕的 active 狀態
+      document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+      
+      // 顯示目標頁面與按鈕
+      document.getElementById(tabName + 'Page').classList.add('active');
+      document.getElementById('tab-' + tabName).classList.add('active');
 
-  const q = query(
-      collection(db, "water_logs"), 
-      where("date", "==", getTodayString())
-  );
+      // 如果切換到月曆頁，載入圖表和今日紀錄
+      if (tabName === 'calendar') {
+          loadMonthlyChart();
+          window.fetchHistoryByDate();
+      }
+  };
 
-  onSnapshot(q, (snapshot) => {
+  // --- 今日資料即時監聽 (首頁 & 紀錄頁共用) ---
+  const qToday = query(collection(db, "water_logs"), where("date", "==", todayStr));
+
+  onSnapshot(qToday, (snapshot) => {
       let total = 0;
       let html = '';
-      
       const docs = [];
+      
       snapshot.forEach((docSnap) => {
-          // 把資料庫的 id 也存起來，刪除的時候才找得到
           docs.push({ id: docSnap.id, ...docSnap.data() });
       });
       docs.sort((a, b) => b.timestamp - a.timestamp); 
-
-      // 更新全域變數
       window.currentDocs = docs;
 
       docs.forEach((data) => {
           total += data.amount;
-          
           let timeStr = '--:--';
           if (data.timestamp) {
               const dateObj = data.timestamp.toDate();
-              timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + 
-                        dateObj.getMinutes().toString().padStart(2, '0');
+              timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + dateObj.getMinutes().toString().padStart(2, '0');
           }
-          
-          // 如果有記錄容器名稱，就顯示出來
-          let itemName = data.itemName ? `<span class="log-name">(${data.itemName})</span>` : '';
-
+          let itemName = data.itemName ? `<span class="log-name">${data.itemName}</span>` : '';
           html += `
             <div class="log-item">
                 <div><span class="log-time">${timeStr}</span> ${itemName}</div>
-                <span>${data.amount} ml</span>
-            </div>
-          `;
+                <span style="color: var(--primary-dark); font-weight:bold;">${data.amount} ml</span>
+            </div>`;
       });
 
-      totalDisplay.innerText = total;
-      logList.innerHTML = html || '<div style="text-align:center; color:#ccc; padding:10px;">今天還沒喝水喔</div>';
-  }, (error) => {
-      console.error(error);
-      alert("讀取失敗：" + error.message);
+      // 更新首頁和紀錄頁的數字
+      document.getElementById('homeTotalAmount').innerText = total;
+      document.getElementById('recordTotalAmount').innerText = total;
+      document.getElementById('logList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">今天還沒喝水喔，趕快喝一杯吧！</div>';
   });
 
-  // 1. 新增喝水功能 (加入 itemName 參數)
+  // --- 新增、刪除功能 ---
   window.addWater = async (amount, itemName = '') => {
       try {
-          await addDoc(collection(db, "water_logs"), {
-              amount: amount,
-              itemName: itemName, // 紀錄是用什麼杯子喝的
-              date: getTodayString(),
-              timestamp: Timestamp.now()
-          });
-      } catch (e) {
-          alert("上傳失敗：" + e.message);
-      }
-  }
+          await addDoc(collection(db, "water_logs"), { amount, itemName, date: getTodayString(), timestamp: Timestamp.now() });
+          // 如果人在首頁，按加水會自動切換過去，但我們現在把按鈕放紀錄頁了
+      } catch (e) { alert("上傳失敗：" + e.message); }
+  };
 
-  // 2. 手動輸入功能
   window.customInput = () => {
-      // 跳出輸入框詢問使用者
       let input = prompt("請輸入喝水量 (ml)：", "300");
       if (input !== null && input.trim() !== "") {
           let amount = parseInt(input, 10);
-          // 檢查是不是正確的數字
-          if (!isNaN(amount) && amount > 0) {
-              window.addWater(amount, '手動輸入');
-          } else {
-              alert("請輸入大於 0 的有效數字！");
-          }
+          if (!isNaN(amount) && amount > 0) window.addWater(amount, '手動輸入');
+          else alert("請輸入大於 0 的有效數字！");
       }
-  }
+  };
 
-  // 3. 返回上一步功能 (刪除最新的一筆)
   window.undoLast = async () => {
       if (window.currentDocs.length > 0) {
-          const lastRecord = window.currentDocs[0]; // 陣列第一筆就是最新的
-          
-          // 再次確認對話框
-          let confirmDelete = confirm(`確定要刪除剛才喝的 ${lastRecord.amount} ml 嗎？`);
-          if (confirmDelete) {
-              try {
-                  await deleteDoc(doc(db, "water_logs", lastRecord.id));
-              } catch (e) {
-                  alert("刪除失敗：" + e.message);
-              }
+          const lastRecord = window.currentDocs[0];
+          if (confirm(`確定要刪除剛才喝的 ${lastRecord.amount} ml 嗎？`)) {
+              await deleteDoc(doc(db, "water_logs", lastRecord.id));
           }
-      } else {
-          alert("今天還沒有喝水記錄可以刪除喔！");
-      }
-  }
+      } else alert("今天還沒有記錄喔！");
+  };
 
-  // 4. 清除今日所有記錄
   window.clearToday = async () => {
       if (window.currentDocs.length > 0) {
-          let confirmClear = confirm("⚠️ 警告：確定要清除今天的『所有』喝水記錄嗎？這無法復原喔！");
-          if (confirmClear) {
-              try {
-                  // 利用迴圈把今天的資料一筆一筆刪除
-                  for (let i = 0; i < window.currentDocs.length; i++) {
-                      await deleteDoc(doc(db, "water_logs", window.currentDocs[i].id));
-                  }
-              } catch (e) {
-                  alert("清除過程發生錯誤：" + e.message);
+          if (confirm("⚠️ 確定要清除今天的『所有』記錄嗎？")) {
+              for (let i = 0; i < window.currentDocs.length; i++) {
+                  await deleteDoc(doc(db, "water_logs", window.currentDocs[i].id));
               }
           }
-      } else {
-          alert("今天本來就沒有記錄喔！");
+      } else alert("今天本來就沒有記錄喔！");
+  };
+
+  // --- 月曆頁：依日期查詢紀錄 ---
+  window.fetchHistoryByDate = async () => {
+      const selectedDate = document.getElementById('historyDate').value;
+      if (!selectedDate) return;
+
+      const qHistory = query(collection(db, "water_logs"), where("date", "==", selectedDate));
+      const querySnapshot = await getDocs(qHistory);
+      
+      let total = 0;
+      let html = '';
+      const historyDocs = [];
+
+      querySnapshot.forEach((docSnap) => {
+          historyDocs.push(docSnap.data());
+      });
+      historyDocs.sort((a, b) => b.timestamp - a.timestamp);
+
+      historyDocs.forEach((data) => {
+          total += data.amount;
+          let timeStr = '--:--';
+          if (data.timestamp) {
+              const dateObj = data.timestamp.toDate();
+              timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + dateObj.getMinutes().toString().padStart(2, '0');
+          }
+          let itemName = data.itemName ? `<span class="log-name">${data.itemName}</span>` : '';
+          html += `
+            <div class="log-item">
+                <div><span class="log-time">${timeStr}</span> ${itemName}</div>
+                <span style="color: var(--primary-dark); font-weight:bold;">${data.amount} ml</span>
+            </div>`;
+      });
+
+      document.getElementById('historyTotal').innerText = `${total} ml`;
+      document.getElementById('historyLogList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">這天沒有喝水記錄喔。</div>';
+  };
+
+  // --- 月曆頁：畫出本月長條圖 ---
+  async function loadMonthlyChart() {
+      // 取得當前月份的第一天和最後一天
+      const date = new Date();
+      const year = date.getFullYear();
+      let month = date.getMonth() + 1;
+      month = month < 10 ? '0' + month : month;
+      
+      const startDate = `${year}-${month}-01`;
+      const endDate = `${year}-${month}-31`;
+
+      // 撈取這個月的所有資料
+      const qMonth = query(
+          collection(db, "water_logs"), 
+          where("date", ">=", startDate),
+          where("date", "<=", endDate)
+      );
+
+      const querySnapshot = await getDocs(qMonth);
+      
+      // 統計每天的總水量
+      const dailyTotals = {};
+      querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (!dailyTotals[data.date]) dailyTotals[data.date] = 0;
+          dailyTotals[data.date] += data.amount;
+      });
+
+      // 準備 Chart.js 需要的格式 (排序日期)
+      const sortedDates = Object.keys(dailyTotals).sort();
+      // 把日期格式化為 "MM/DD" 比較好看
+      const labels = sortedDates.map(d => {
+          const parts = d.split('-');
+          return `${parts[1]}/${parts[2]}`;
+      });
+      const dataPoints = sortedDates.map(d => dailyTotals[d]);
+
+      // 如果圖表已經存在，先砍掉重練
+      if (waterChartInstance) {
+          waterChartInstance.destroy();
       }
+
+      const ctx = document.getElementById('waterChart').getContext('2d');
+      waterChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+              labels: labels.length > 0 ? labels : ['尚未有紀錄'],
+              datasets: [{
+                  label: '每日喝水量 (ml)',
+                  data: dataPoints.length > 0 ? dataPoints : [0],
+                  backgroundColor: '#ffb6c1', // 淺粉紅柱子
+                  borderColor: '#ff8da1',     // 深粉紅邊框
+                  borderWidth: 1,
+                  borderRadius: 6 // 柱子圓角，看起來更可愛
+              }]
+          },
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                  y: { beginAtZero: true }
+              },
+              plugins: {
+                  legend: { display: false } // 隱藏圖例，版面比較乾淨
+              }
+          }
+      });
   }
+
 </script>
 
 </body>
