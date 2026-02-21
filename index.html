@@ -100,12 +100,13 @@
         .btn-undo { background-color: #e0e0e0; color: #555; }
         .btn-clear { background-color: #ff9e9e; color: white; }
 
-        /* --- 歷史紀錄清單 --- */
+        /* --- 歷史記錄清單 --- */
         .history-section { text-align: left; }
         .history-section h3 { font-size: 1rem; border-bottom: 2px solid var(--bg-color); padding-bottom: 8px; color: var(--text-dark); }
         .log-item {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             padding: 10px 0;
             border-bottom: 1px solid var(--bg-color);
             font-size: 0.95rem;
@@ -113,17 +114,34 @@
         .log-time { color: var(--text-light); font-weight: bold; }
         .log-name { font-size: 0.8em; color: var(--primary); margin-left: 5px; background: var(--bg-color); padding: 2px 6px; border-radius: 8px; }
 
-        /* --- 月曆頁面專用 --- */
+        /* --- 圖表與輸入框專用 --- */
         .chart-container { position: relative; height: 200px; width: 100%; margin-bottom: 1.5rem; }
         .date-picker-wrapper { text-align: center; margin-bottom: 1rem; }
-        input[type="date"] {
+        input[type="date"], input[type="number"] {
             padding: 10px;
             border-radius: 12px;
-            border: 1px solid var(--secondary);
+            border: 2px solid var(--secondary); /* 體重輸入框加上邊框 */
             font-family: inherit;
             color: var(--text-dark);
             background: var(--bg-color);
             outline: none;
+        }
+        
+        /* 體重輸入框特製樣式 */
+        .weight-input-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .weight-input-container input {
+            font-size: 2rem;
+            width: 120px;
+            text-align: center;
+            font-weight: bold;
+            color: var(--primary-dark);
+            border: 2px solid var(--secondary);
         }
 
         /* --- 底部導覽列 --- */
@@ -151,6 +169,7 @@
             font-size: 0.75rem;
             cursor: pointer;
             padding: 5px 10px;
+            flex: 1; /* 讓 4 個按鈕均分寬度 */
         }
         .nav-item.active {
             color: var(--primary-dark);
@@ -211,6 +230,36 @@
         </div>
     </div>
 
+    <div id="weightPage" class="page">
+        <div class="card">
+            <h1>⚖️ 體重記錄</h1>
+            <p class="date-subtitle">記錄今天的體重變化</p>
+            
+            <div class="weight-input-container">
+                <input type="number" id="weightInput" step="0.1" placeholder="00.0">
+                <span style="font-size: 1.5rem; color: var(--text-light); font-weight: bold;">kg</span>
+            </div>
+            
+            <button class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem;" onclick="saveWeight()">
+                儲存體重
+            </button>
+        </div>
+
+        <div class="card">
+            <h3>📈 體重趨勢</h3>
+            <div class="chart-container">
+                <canvas id="weightChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card history-section">
+            <h3>近期記錄</h3>
+            <div id="weightLogList">
+                <div style="text-align:center; color:#ccc; padding:10px;">讀取資料中...</div>
+            </div>
+        </div>
+    </div>
+
     <div id="calendarPage" class="page">
         <div class="card">
             <h1>📅 喝水統計</h1>
@@ -231,7 +280,7 @@
             <div style="text-align:center; font-size:1.5rem; font-weight:bold; color:var(--primary); margin: 10px 0;" id="historyTotal">0 ml</div>
             
             <div id="historyLogList">
-                <div style="text-align:center; color:var(--text-light); padding:10px;">請選擇日期查看紀錄</div>
+                <div style="text-align:center; color:var(--text-light); padding:10px;">請選擇日期查看記錄</div>
             </div>
         </div>
     </div>
@@ -244,6 +293,10 @@
         <button class="nav-item" onclick="switchTab('record')" id="tab-record">
             <span class="nav-icon">💧</span>
             <span>記錄</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('weight')" id="tab-weight">
+            <span class="nav-icon">⚖️</span>
+            <span>體重</span>
         </button>
         <button class="nav-item" onclick="switchTab('calendar')" id="tab-calendar">
             <span class="nav-icon">📅</span>
@@ -272,7 +325,8 @@
   const db = getFirestore(app);
 
   window.currentDocs = [];
-  let waterChartInstance = null; // 存放圖表實例
+  let waterChartInstance = null; // 存放喝水圖表實例
+  let weightChartInstance = null; // 存放體重圖表實例
 
   // --- 工具函數 ---
   function getTodayString() {
@@ -298,14 +352,16 @@
       document.getElementById(tabName + 'Page').classList.add('active');
       document.getElementById('tab-' + tabName).classList.add('active');
 
-      // 如果切換到月曆頁，載入圖表和今日紀錄
+      // 判斷要載入哪些資料
       if (tabName === 'calendar') {
           loadMonthlyChart();
           window.fetchHistoryByDate();
+      } else if (tabName === 'weight') {
+          window.loadWeightData(); // 切換到體重頁時載入圖表和資料
       }
   };
 
-  // --- 今日資料即時監聽 (首頁 & 紀錄頁共用) ---
+  // --- 今日資料即時監聽 (首頁 & 記錄頁共用) ---
   const qToday = query(collection(db, "water_logs"), where("date", "==", todayStr));
 
   onSnapshot(qToday, (snapshot) => {
@@ -334,7 +390,7 @@
             </div>`;
       });
 
-      // 更新首頁和紀錄頁的數字
+      // 更新首頁和記錄頁的數字
       document.getElementById('homeTotalAmount').innerText = total;
       document.getElementById('recordTotalAmount').innerText = total;
       document.getElementById('logList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">今天還沒喝水喔，趕快喝一杯吧！</div>';
@@ -344,7 +400,6 @@
   window.addWater = async (amount, itemName = '') => {
       try {
           await addDoc(collection(db, "water_logs"), { amount, itemName, date: getTodayString(), timestamp: Timestamp.now() });
-          // 如果人在首頁，按加水會自動切換過去，但我們現在把按鈕放紀錄頁了
       } catch (e) { alert("上傳失敗：" + e.message); }
   };
 
@@ -376,7 +431,7 @@
       } else alert("今天本來就沒有記錄喔！");
   };
 
-  // --- 月曆頁：依日期查詢紀錄 ---
+  // --- 月曆頁：依日期查詢記錄 ---
   window.fetchHistoryByDate = async () => {
       const selectedDate = document.getElementById('historyDate').value;
       if (!selectedDate) return;
@@ -458,7 +513,7 @@
       waterChartInstance = new Chart(ctx, {
           type: 'bar',
           data: {
-              labels: labels.length > 0 ? labels : ['尚未有紀錄'],
+              labels: labels.length > 0 ? labels : ['尚未有記錄'],
               datasets: [{
                   label: '每日喝水量 (ml)',
                   data: dataPoints.length > 0 ? dataPoints : [0],
@@ -480,6 +535,101 @@
           }
       });
   }
+
+  // ==========================================
+  // ========== 體重功能專區 ==========
+  // ==========================================
+
+  window.saveWeight = async () => {
+      const weightVal = document.getElementById('weightInput').value;
+      if(!weightVal || weightVal <= 0) {
+          alert("請輸入有效的體重數字！");
+          return;
+      }
+      try {
+          // 儲存到新的 weight_logs 資料表
+          await addDoc(collection(db, "weight_logs"), { 
+              weight: parseFloat(weightVal), 
+              date: getTodayString(), 
+              timestamp: Timestamp.now() 
+          });
+          alert("✅ 體重儲存成功！");
+          document.getElementById('weightInput').value = ''; // 清空輸入框
+          window.loadWeightData(); // 重新整理圖表和清單
+      } catch (e) { alert("儲存失敗：" + e.message); }
+  };
+
+  window.deleteWeight = async (id) => {
+      if(confirm("確定要刪除這筆體重記錄嗎？")) {
+          await deleteDoc(doc(db, "weight_logs", id));
+          window.loadWeightData(); // 重新整理圖表和清單
+      }
+  };
+
+  window.loadWeightData = async () => {
+      // 抓取所有體重記錄
+      const querySnapshot = await getDocs(collection(db, "weight_logs"));
+      const logs = [];
+      querySnapshot.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
+      
+      // 依時間新到舊排序
+      logs.sort((a, b) => b.timestamp - a.timestamp); 
+      
+      // 1. 更新近期記錄清單 (顯示最新 10 筆)
+      let html = '';
+      logs.slice(0, 10).forEach(log => { 
+          let timeStr = '--/-- --:--';
+          if (log.timestamp) {
+              const d = log.timestamp.toDate();
+              timeStr = `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+          }
+          html += `
+          <div class="log-item">
+              <span class="log-time">${timeStr}</span>
+              <span style="color: var(--primary-dark); font-weight:bold;">${log.weight} kg</span>
+              <button onclick="deleteWeight('${log.id}')" style="background:none; border:none; color:#ff9e9e; font-size:1.2rem; cursor:pointer;">✖</button>
+          </div>`;
+      });
+      document.getElementById('weightLogList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">尚未有體重記錄喔。</div>';
+      
+      // 2. 更新體重折線圖
+      const chartLogs = [...logs].reverse(); // 畫圖要從舊到新
+      const dailyWeight = {};
+      // 如果一天有多筆記錄，會以最後輸入的為準
+      chartLogs.forEach(log => { dailyWeight[log.date] = log.weight; });
+      
+      const labels = Object.keys(dailyWeight).sort();
+      const dataPoints = labels.map(date => dailyWeight[date]);
+      const displayLabels = labels.map(d => {
+          const parts = d.split('-');
+          return `${parts[1]}/${parts[2]}`;
+      });
+
+      if (weightChartInstance) { weightChartInstance.destroy(); }
+      const ctx = document.getElementById('weightChart').getContext('2d');
+      weightChartInstance = new Chart(ctx, {
+          type: 'line', // 使用折線圖
+          data: {
+              labels: displayLabels.length > 0 ? displayLabels : ['尚未有記錄'],
+              datasets: [{
+                  label: '體重 (kg)',
+                  data: dataPoints.length > 0 ? dataPoints : [0],
+                  borderColor: '#ff6b8b', // 深粉紅線條
+                  backgroundColor: 'rgba(255, 107, 139, 0.2)', // 線條下方的半透明填色
+                  borderWidth: 2,
+                  fill: true,
+                  tension: 0.3, // 讓線條有柔和的曲線
+                  pointBackgroundColor: '#ff6b8b',
+                  pointRadius: 4
+              }]
+          },
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } }
+          }
+      });
+  };
 
 </script>
 
