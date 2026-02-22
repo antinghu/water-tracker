@@ -207,8 +207,6 @@
             </div>
 
             <div class="btn-group">
-                <button class="btn btn-add" onclick="addWater(200, '杯子')">+ 200 ml</button>
-                <button class="btn btn-add" onclick="addWater(500, '水瓶')">+ 500 ml</button>
                 <button class="btn btn-add-special" onclick="addWater(473, 'Fellow')">Fellow 473 ml</button>
                 <button class="btn btn-add-special" onclick="addWater(700, '大象杯')">大象杯 700 ml</button>
             </div>
@@ -430,16 +428,14 @@
   };
 
   // ==========================================
-  // ========== 自訂按鈕專區 (全新加入) ==========
+  // ========== 自訂按鈕專區 ==========
   // ==========================================
 
   window.renderCustomButtons = () => {
       const container = document.getElementById('customBtnGroup');
-      // 從手機本機空間讀取自訂按鈕資料
       const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
       let html = '';
       buttons.forEach((btn, index) => {
-          // 加入 oncontextmenu 讓長按(或電腦右鍵)可以觸發刪除
           html += `<button class="btn btn-add-special" 
                            style="background-color: #ffe4e1;" 
                            oncontextmenu="removeCustomButton(${index}); return false;" 
@@ -480,7 +476,6 @@
       }
   };
 
-  // 網頁開啟時，自動將你設定過的自訂按鈕畫出來
   window.renderCustomButtons();
 
 
