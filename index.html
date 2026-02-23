@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* --- 粉嫩色系定義 --- */
         :root {
             --bg-color: #fff0f5;      
             --primary: #ff8da1;       
@@ -17,7 +16,6 @@
             --text-light: #9fa6b2;    
             --white: #ffffff;
         }
-
         body {
             font-family: 'Noto Sans TC', sans-serif;
             background-color: var(--bg-color);
@@ -27,29 +25,22 @@
             display: flex;
             justify-content: center;
         }
-
         .app-container {
             width: 100%;
             max-width: 450px;
             min-height: 100vh;
             background: transparent;
         }
-
-        /* --- 頁面切換設定 --- */
         .page {
             display: none;
             padding: 1.5rem;
             animation: fadeIn 0.3s ease-in-out;
         }
-        .page.active {
-            display: block;
-        }
+        .page.active { display: block; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
-        /* --- UI 元件設計 --- */
         .card {
             background: var(--white);
             padding: 1.5rem;
@@ -60,131 +51,51 @@
         }
         h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-dark); }
         .date-subtitle { color: var(--text-light); margin-bottom: 1rem; font-size: 0.9rem; }
-        
         .progress-circle {
-            width: 160px;
-            height: 160px;
-            background: #fff5f7;
-            border-radius: 50%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            margin: 0 auto 1.5rem;
-            border: 8px solid var(--secondary);
-            box-shadow: inset 0 4px 10px rgba(0,0,0,0.05);
+            width: 160px; height: 160px; background: #fff5f7; border-radius: 50%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            margin: 0 auto 1.5rem; border: 8px solid var(--secondary); box-shadow: inset 0 4px 10px rgba(0,0,0,0.05);
         }
         .current-ml { font-size: 2.2rem; font-weight: bold; color: var(--primary-dark); }
         .label { font-size: 0.85rem; color: var(--text-light); }
-
-        /* --- 按鈕設計 --- */
         .btn-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 1rem; }
         .btn {
-            border: none;
-            padding: 12px 10px;
-            border-radius: 16px;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: 0.2s;
-            font-weight: bold;
-            flex: 1 1 45%;
-            box-sizing: border-box;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: none; padding: 12px 10px; border-radius: 16px; font-size: 0.95rem; cursor: pointer;
+            transition: 0.2s; font-weight: bold; flex: 1 1 45%; box-sizing: border-box; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
         .btn:active { transform: scale(0.95); }
-        
         .btn-add { background-color: var(--primary); color: white; }
         .btn-add-special { background-color: var(--secondary); color: var(--text-dark); }
         .btn-custom { background-color: var(--white); color: var(--primary-dark); border: 2px solid var(--primary); flex: 1 1 100%; }
         .btn-undo { background-color: #e0e0e0; color: #555; }
         .btn-clear { background-color: #ff9e9e; color: white; }
-
-        /* --- 歷史記錄清單 --- */
         .history-section { text-align: left; }
         .history-section h3 { font-size: 1rem; border-bottom: 2px solid var(--bg-color); padding-bottom: 8px; color: var(--text-dark); }
-        .log-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--bg-color);
-            font-size: 0.95rem;
-        }
+        .log-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--bg-color); font-size: 0.95rem; }
         .log-time { color: var(--text-light); font-weight: bold; }
         .log-name { font-size: 0.8em; color: var(--primary); margin-left: 5px; background: var(--bg-color); padding: 2px 6px; border-radius: 8px; }
-
-        /* --- 圖表與輸入框 --- */
         .chart-container { position: relative; height: 200px; width: 100%; margin-bottom: 1.5rem; }
         .date-picker-wrapper { text-align: center; margin-bottom: 1rem; }
-        input[type="date"], input[type="number"] {
-            padding: 10px;
-            border-radius: 12px;
-            border: 2px solid var(--secondary);
-            font-family: inherit;
-            color: var(--text-dark);
-            background: var(--bg-color);
-            outline: none;
-        }
-        .weight-input-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .weight-input-container input {
-            font-size: 2rem;
-            width: 120px;
-            text-align: center;
-            font-weight: bold;
-            color: var(--primary-dark);
-            border: 2px solid var(--secondary);
-        }
-
-        /* --- 底部導覽列 --- */
+        input[type="date"], input[type="number"] { padding: 10px; border-radius: 12px; border: 2px solid var(--secondary); font-family: inherit; color: var(--text-dark); background: var(--bg-color); outline: none; }
+        .weight-input-container { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .weight-input-container input { font-size: 2rem; width: 120px; text-align: center; font-weight: bold; color: var(--primary-dark); border: 2px solid var(--secondary); }
         .bottom-nav {
-            display: none; /* 預設隱藏，登入後才顯示 */
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: var(--white);
-            justify-content: space-around;
-            padding: 10px 0;
-            box-shadow: 0 -2px 15px rgba(0,0,0,0.05);
-            border-top-left-radius: 20px;
-            border-top-right-radius: 20px;
-            z-index: 1000;
+            display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: var(--white); justify-content: space-around;
+            padding: 10px 0; box-shadow: 0 -2px 15px rgba(0,0,0,0.05); border-top-left-radius: 20px; border-top-right-radius: 20px; z-index: 1000;
         }
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background: none;
-            border: none;
-            color: var(--text-light);
-            font-size: 0.75rem;
-            cursor: pointer;
-            padding: 5px 10px;
-            flex: 1; 
-        }
-        .nav-item.active {
-            color: var(--primary-dark);
-            font-weight: bold;
-        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--text-light); font-size: 0.75rem; cursor: pointer; padding: 5px 10px; flex: 1; }
+        .nav-item.active { color: var(--primary-dark); font-weight: bold; }
         .nav-icon { font-size: 1.5rem; margin-bottom: 3px; }
-
     </style>
 </head>
 <body>
 
 <div class="app-container">
-
     <div id="loginPage" class="page active" style="text-align: center; display: flex; flex-direction: column; justify-content: center; height: 85vh;">
         <div class="card" style="padding: 3rem 2rem;">
             <h1 style="font-size: 2rem; margin-bottom: 1rem;">🔒 專屬記錄</h1>
             <p class="date-subtitle">為了保護您的資料安全，請先登入</p>
-            <button class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem; margin-top: 20px;" onclick="signIn()">
+            <button id="loginBtn" class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem; margin-top: 20px;" onclick="signIn()">
                 使用 Google 帳號登入
             </button>
         </div>
@@ -194,17 +105,14 @@
         <div class="card">
             <h1>沒事多喝水</h1>
             <div class="date-subtitle" id="homeDateDisplay">載入中...</div>
-            
             <div class="progress-circle" style="width: 200px; height: 200px; border-width: 12px;">
                 <span class="current-ml" id="homeTotalAmount" style="font-size: 2.8rem;">0</span>
                 <span class="label">ml / 今天</span>
             </div>
-            
             <p style="color: var(--text-light); font-size: 0.9rem;">隨時補充水分，讓身體維持好狀態！</p>
             <button class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem; margin-top: 10px;" onclick="switchTab('record')">
                 💧 點我喝水
             </button>
-            
             <button onclick="logOut()" style="margin-top:20px; background:none; border:none; color:var(--text-light); cursor:pointer; font-size:0.8rem; text-decoration:underline;">登出帳號</button>
         </div>
     </div>
@@ -216,30 +124,23 @@
                 <span class="current-ml" id="recordTotalAmount">0</span>
                 <span class="label">ml</span>
             </div>
-
             <div class="btn-group">
                 <button class="btn btn-add-special" onclick="addWater(473, 'Fellow')">Fellow 473 ml</button>
                 <button class="btn btn-add-special" onclick="addWater(700, '大象杯')">大象杯 700 ml</button>
             </div>
-
             <div class="btn-group" id="customBtnGroup"></div>
-
             <div class="btn-group">
                 <button class="btn btn-custom" style="flex: 1 1 45%;" onclick="customInput()">✏️ 手動輸入</button>
                 <button class="btn btn-custom" style="flex: 1 1 45%; color: var(--primary-dark); border-color: var(--secondary);" onclick="addCustomButton()">➕ 新增按鈕</button>
             </div>
-
             <div class="btn-group">
                 <button class="btn btn-undo" onclick="undoLast()">↩️ 上一步</button>
                 <button class="btn btn-clear" onclick="clearToday()">🗑️ 清除今日</button>
             </div>
         </div>
-
         <div class="card history-section">
             <h3>今日記錄</h3>
-            <div id="logList">
-                <div style="text-align:center; color:#ccc; padding:10px;">讀取資料中...</div>
-            </div>
+            <div id="logList"><div style="text-align:center; color:#ccc; padding:10px;">讀取資料中...</div></div>
         </div>
     </div>
 
@@ -247,29 +148,19 @@
         <div class="card">
             <h1>⚖️ 體重記錄</h1>
             <p class="date-subtitle">記錄今天的體重變化</p>
-            
             <div class="weight-input-container">
                 <input type="number" id="weightInput" step="0.1" placeholder="00.0">
                 <span style="font-size: 1.5rem; color: var(--text-light); font-weight: bold;">kg</span>
             </div>
-            
-            <button class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem;" onclick="saveWeight()">
-                儲存體重
-            </button>
+            <button class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem;" onclick="saveWeight()">儲存體重</button>
         </div>
-
         <div class="card">
             <h3>📈 體重趨勢</h3>
-            <div class="chart-container">
-                <canvas id="weightChart"></canvas>
-            </div>
+            <div class="chart-container"><canvas id="weightChart"></canvas></div>
         </div>
-
         <div class="card history-section">
             <h3>近期記錄</h3>
-            <div id="weightLogList">
-                <div style="text-align:center; color:#ccc; padding:10px;">讀取資料中...</div>
-            </div>
+            <div id="weightLogList"><div style="text-align:center; color:#ccc; padding:10px;">讀取資料中...</div></div>
         </div>
     </div>
 
@@ -277,55 +168,32 @@
         <div class="card">
             <h1>📅 喝水統計</h1>
             <p class="date-subtitle">本月每日喝水量</p>
-            
-            <div class="chart-container">
-                <canvas id="waterChart"></canvas>
-            </div>
+            <div class="chart-container"><canvas id="waterChart"></canvas></div>
         </div>
-
         <div class="card history-section">
             <div class="date-picker-wrapper">
                 <label for="historyDate" style="font-weight:bold; color:var(--text-dark);">查詢指定日期：</label><br><br>
                 <input type="date" id="historyDate" onchange="fetchHistoryByDate()">
             </div>
-            
             <h3>當日記錄總覽</h3>
             <div style="text-align:center; font-size:1.5rem; font-weight:bold; color:var(--primary); margin: 10px 0;" id="historyTotal">0 ml</div>
-            
-            <div id="historyLogList">
-                <div style="text-align:center; color:var(--text-light); padding:10px;">請選擇日期查看記錄</div>
-            </div>
+            <div id="historyLogList"><div style="text-align:center; color:var(--text-light); padding:10px;">請選擇日期查看記錄</div></div>
         </div>
     </div>
 
     <div class="bottom-nav" id="bottomNav">
-        <button class="nav-item active" onclick="switchTab('home')" id="tab-home">
-            <span class="nav-icon">🏠</span>
-            <span>首頁</span>
-        </button>
-        <button class="nav-item" onclick="switchTab('record')" id="tab-record">
-            <span class="nav-icon">💧</span>
-            <span>記錄</span>
-        </button>
-        <button class="nav-item" onclick="switchTab('weight')" id="tab-weight">
-            <span class="nav-icon">⚖️</span>
-            <span>體重</span>
-        </button>
-        <button class="nav-item" onclick="switchTab('calendar')" id="tab-calendar">
-            <span class="nav-icon">📅</span>
-            <span>月曆</span>
-        </button>
+        <button class="nav-item active" onclick="switchTab('home')" id="tab-home"><span class="nav-icon">🏠</span><span>首頁</span></button>
+        <button class="nav-item" onclick="switchTab('record')" id="tab-record"><span class="nav-icon">💧</span><span>記錄</span></button>
+        <button class="nav-item" onclick="switchTab('weight')" id="tab-weight"><span class="nav-icon">⚖️</span><span>體重</span></button>
+        <button class="nav-item" onclick="switchTab('calendar')" id="tab-calendar"><span class="nav-icon">📅</span><span>月曆</span></button>
     </div>
-
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, deleteDoc, doc } 
-    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-  // 🌟 換回 signInWithPopup，對 iPhone 的相容性更好
-  import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } 
-    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  // 🌟 改用 signInWithRedirect (整頁跳轉) 以及 getRedirectResult (抓取錯誤)
+  import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDB3WJa1pmBcjxk0EKQM6is4z2n5oCY0W4",
@@ -357,6 +225,16 @@
   document.getElementById('historyDate').value = todayStr; 
   document.getElementById('historyDate').max = todayStr;   
 
+  // ==========================================
+  // 🌟 核心：處理網頁跳轉回來的結果 (超級除錯器)
+  // ==========================================
+  getRedirectResult(auth).catch((error) => {
+      // 如果跳轉失敗，這裡會立刻攔截並顯示錯誤訊息
+      alert("⚠️ 登入失敗！\n錯誤訊息：" + error.message + "\n\n💡 請確保 Firebase 後台已將 antinghu.github.io 加入授權網域！");
+      const btn = document.getElementById('loginBtn');
+      if (btn) btn.innerText = "重新嘗試登入";
+  });
+
   // 監聽登入狀態
   onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -372,63 +250,32 @@
       }
   });
 
-  // 🌟 加入了詳細的錯誤捕捉，不再卡白畫面
-  window.signIn = async () => {
-      try {
-          // 改變按鈕文字，讓你知道程式有在跑
-          const btn = event.target;
-          btn.innerText = "登入連線中...";
-          await signInWithPopup(auth, provider);
-      } catch (error) {
-          if (error.code === 'auth/unauthorized-domain') {
-              alert("⚠️ 錯誤：Firebase 尚未授權這個網址！\n請去 Firebase 後台的 Authentication -> 設定 -> 授權網域，加入 antinghu.github.io");
-          } else if (error.code === 'auth/popup-blocked') {
-              alert("⚠️ 錯誤：iPhone 擋住了登入視窗！\n請改用「一般的 Safari 瀏覽器」打開網頁登入。");
-          } else {
-              alert("登入發生錯誤：" + error.message);
-          }
-          event.target.innerText = "使用 Google 帳號登入"; // 恢復按鈕文字
-      }
+  // 登入按鈕綁定 (改為整頁跳轉)
+  window.signIn = () => {
+      const btn = document.getElementById('loginBtn');
+      if(btn) btn.innerText = "準備跳轉至 Google...";
+      signInWithRedirect(auth, provider); // 使用手機最穩定的 Redirect
   };
 
-  window.logOut = () => {
-      if(confirm("確定要登出嗎？")) {
-          signOut(auth);
-      }
-  };
+  window.logOut = () => { if(confirm("確定要登出嗎？")) signOut(auth); };
 
   window.switchTab = (tabName) => {
       if (!auth.currentUser) return; 
-
       document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
-      
       document.getElementById(tabName + 'Page').classList.add('active');
       const tabBtn = document.getElementById('tab-' + tabName);
       if(tabBtn) tabBtn.classList.add('active');
-
-      if (tabName === 'calendar') {
-          loadMonthlyChart();
-          window.fetchHistoryByDate();
-      } else if (tabName === 'weight') {
-          window.loadWeightData(); 
-      }
+      if (tabName === 'calendar') { loadMonthlyChart(); window.fetchHistoryByDate(); } 
+      else if (tabName === 'weight') { window.loadWeightData(); }
   };
 
   function startWaterListener() {
       const qToday = query(collection(db, "water_logs"), where("date", "==", todayStr));
-
       waterListenerUnsubscribe = onSnapshot(qToday, (snapshot) => {
-          let total = 0;
-          let html = '';
-          const docs = [];
-          
-          snapshot.forEach((docSnap) => {
-              docs.push({ id: docSnap.id, ...docSnap.data() });
-          });
-          docs.sort((a, b) => b.timestamp - a.timestamp); 
-          window.currentDocs = docs;
-
+          let total = 0; let html = ''; const docs = [];
+          snapshot.forEach((docSnap) => { docs.push({ id: docSnap.id, ...docSnap.data() }); });
+          docs.sort((a, b) => b.timestamp - a.timestamp); window.currentDocs = docs;
           docs.forEach((data) => {
               total += data.amount;
               let timeStr = '--:--';
@@ -437,29 +284,20 @@
                   timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + dateObj.getMinutes().toString().padStart(2, '0');
               }
               let itemName = data.itemName ? `<span class="log-name">${data.itemName}</span>` : '';
-              html += `
-                <div class="log-item">
-                    <div><span class="log-time">${timeStr}</span> ${itemName}</div>
-                    <span style="color: var(--primary-dark); font-weight:bold;">${data.amount} ml</span>
-                </div>`;
+              html += `<div class="log-item"><div><span class="log-time">${timeStr}</span> ${itemName}</div><span style="color: var(--primary-dark); font-weight:bold;">${data.amount} ml</span></div>`;
           });
-
           document.getElementById('homeTotalAmount').innerText = total;
           document.getElementById('recordTotalAmount').innerText = total;
           document.getElementById('logList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">今天還沒喝水喔，趕快喝一杯吧！</div>';
       }, (error) => {
-          if(error.code === 'permission-denied') {
-              alert("⚠️ 權限錯誤：您登入的信箱不是當初設定授權的管理員信箱喔！請登出換一個信箱。");
-          } else {
-              console.error(error);
-          }
+          if(error.code === 'permission-denied') alert("⚠️ 權限錯誤：登入的信箱不是管理員喔！");
+          else console.error(error);
       });
   }
 
   window.addWater = async (amount, itemName = '') => {
-      try {
-          await addDoc(collection(db, "water_logs"), { amount, itemName, date: getTodayString(), timestamp: Timestamp.now() });
-      } catch (e) { alert("上傳失敗，請確認您登入的信箱是否正確。"); }
+      try { await addDoc(collection(db, "water_logs"), { amount, itemName, date: getTodayString(), timestamp: Timestamp.now() }); } 
+      catch (e) { alert("上傳失敗，請確認您登入的信箱是否正確。"); }
   };
 
   window.customInput = () => {
@@ -495,12 +333,7 @@
       const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
       let html = '';
       buttons.forEach((btn, index) => {
-          html += `<button class="btn btn-add-special" 
-                           style="background-color: #ffe4e1;" 
-                           oncontextmenu="removeCustomButton(${index}); return false;" 
-                           onclick="addWater(${btn.amount}, '${btn.name}')">
-                           🌟 ${btn.name} ${btn.amount} ml
-                   </button>`;
+          html += `<button class="btn btn-add-special" style="background-color: #ffe4e1;" oncontextmenu="removeCustomButton(${index}); return false;" onclick="addWater(${btn.amount}, '${btn.name}')">🌟 ${btn.name} ${btn.amount} ml</button>`;
       });
       container.innerHTML = html;
   };
@@ -511,10 +344,7 @@
       let amountStr = prompt(`請設定「${name}」的容量 (ml)：`, "600");
       if (!amountStr || amountStr.trim() === "") return;
       let amount = parseInt(amountStr, 10);
-      if (isNaN(amount) || amount <= 0) {
-          alert("⚠️ 請輸入大於 0 的有效數字！");
-          return;
-      }
+      if (isNaN(amount) || amount <= 0) { alert("⚠️ 請輸入大於 0 的有效數字！"); return; }
       const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
       buttons.push({ name: name.trim(), amount: amount });
       localStorage.setItem('myCustomWaterBtns', JSON.stringify(buttons));
@@ -525,8 +355,7 @@
   window.removeCustomButton = (index) => {
       if(confirm("確定要刪除這個自訂按鈕嗎？")) {
           const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
-          buttons.splice(index, 1);
-          localStorage.setItem('myCustomWaterBtns', JSON.stringify(buttons));
+          buttons.splice(index, 1); localStorage.setItem('myCustomWaterBtns', JSON.stringify(buttons));
           window.renderCustomButtons();
       }
   };
@@ -536,19 +365,11 @@
   window.fetchHistoryByDate = async () => {
       const selectedDate = document.getElementById('historyDate').value;
       if (!selectedDate) return;
-
       const qHistory = query(collection(db, "water_logs"), where("date", "==", selectedDate));
       const querySnapshot = await getDocs(qHistory).catch(e => { alert("讀取權限不足"); return {forEach:()=>{}}; });
-      
-      let total = 0;
-      let html = '';
-      const historyDocs = [];
-
-      querySnapshot.forEach((docSnap) => {
-          historyDocs.push(docSnap.data());
-      });
+      let total = 0; let html = ''; const historyDocs = [];
+      querySnapshot.forEach((docSnap) => { historyDocs.push(docSnap.data()); });
       historyDocs.sort((a, b) => b.timestamp - a.timestamp);
-
       historyDocs.forEach((data) => {
           total += data.amount;
           let timeStr = '--:--';
@@ -557,31 +378,16 @@
               timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + dateObj.getMinutes().toString().padStart(2, '0');
           }
           let itemName = data.itemName ? `<span class="log-name">${data.itemName}</span>` : '';
-          html += `
-            <div class="log-item">
-                <div><span class="log-time">${timeStr}</span> ${itemName}</div>
-                <span style="color: var(--primary-dark); font-weight:bold;">${data.amount} ml</span>
-            </div>`;
+          html += `<div class="log-item"><div><span class="log-time">${timeStr}</span> ${itemName}</div><span style="color: var(--primary-dark); font-weight:bold;">${data.amount} ml</span></div>`;
       });
-
       document.getElementById('historyTotal').innerText = `${total} ml`;
       document.getElementById('historyLogList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">這天沒有喝水記錄喔。</div>';
   };
 
   async function loadMonthlyChart() {
-      const date = new Date();
-      const year = date.getFullYear();
-      let month = date.getMonth() + 1;
-      month = month < 10 ? '0' + month : month;
-      const startDate = `${year}-${month}-01`;
-      const endDate = `${year}-${month}-31`;
-
-      const qMonth = query(
-          collection(db, "water_logs"), 
-          where("date", ">=", startDate),
-          where("date", "<=", endDate)
-      );
-
+      const date = new Date(); const year = date.getFullYear(); let month = date.getMonth() + 1; month = month < 10 ? '0' + month : month;
+      const startDate = `${year}-${month}-01`; const endDate = `${year}-${month}-31`;
+      const qMonth = query(collection(db, "water_logs"), where("date", ">=", startDate), where("date", "<=", endDate));
       const querySnapshot = await getDocs(qMonth).catch(e => { return {forEach:()=>{}}; });
       const dailyTotals = {};
       querySnapshot.forEach((docSnap) => {
@@ -589,62 +395,33 @@
           if (!dailyTotals[data.date]) dailyTotals[data.date] = 0;
           dailyTotals[data.date] += data.amount;
       });
-
       const sortedDates = Object.keys(dailyTotals).sort();
-      const labels = sortedDates.map(d => {
-          const parts = d.split('-');
-          return `${parts[1]}/${parts[2]}`;
-      });
+      const labels = sortedDates.map(d => { const parts = d.split('-'); return `${parts[1]}/${parts[2]}`; });
       const dataPoints = sortedDates.map(d => dailyTotals[d]);
-
       if (waterChartInstance) { waterChartInstance.destroy(); }
       const ctx = document.getElementById('waterChart').getContext('2d');
       waterChartInstance = new Chart(ctx, {
-          type: 'bar',
-          data: {
-              labels: labels.length > 0 ? labels : ['尚未有記錄'],
-              datasets: [{
-                  label: '每日喝水量 (ml)',
-                  data: dataPoints.length > 0 ? dataPoints : [0],
-                  backgroundColor: '#ffb6c1', borderColor: '#ff8da1', borderWidth: 1, borderRadius: 6 
-              }]
-          },
-          options: {
-              responsive: true, maintainAspectRatio: false,
-              scales: { y: { beginAtZero: true } },
-              plugins: { legend: { display: false } } 
-          }
+          type: 'bar', data: { labels: labels.length > 0 ? labels : ['尚未有記錄'], datasets: [{ label: '每日喝水量 (ml)', data: dataPoints.length > 0 ? dataPoints : [0], backgroundColor: '#ffb6c1', borderColor: '#ff8da1', borderWidth: 1, borderRadius: 6 }] },
+          options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
       });
   }
 
   window.saveWeight = async () => {
       const weightVal = document.getElementById('weightInput').value;
-      if(!weightVal || weightVal <= 0) {
-          alert("請輸入有效的體重數字！");
-          return;
-      }
+      if(!weightVal || weightVal <= 0) { alert("請輸入有效的體重數字！"); return; }
       try {
-          await addDoc(collection(db, "weight_logs"), { 
-              weight: parseFloat(weightVal), date: getTodayString(), timestamp: Timestamp.now() 
-          });
-          alert("✅ 體重儲存成功！");
-          document.getElementById('weightInput').value = ''; 
-          window.loadWeightData(); 
+          await addDoc(collection(db, "weight_logs"), { weight: parseFloat(weightVal), date: getTodayString(), timestamp: Timestamp.now() });
+          alert("✅ 體重儲存成功！"); document.getElementById('weightInput').value = ''; window.loadWeightData(); 
       } catch (e) { alert("儲存失敗，請確認登入信箱。"); }
   };
 
   window.deleteWeight = async (id) => {
-      if(confirm("確定要刪除這筆體重記錄嗎？")) {
-          await deleteDoc(doc(db, "weight_logs", id)).catch(e => alert("刪除失敗"));
-          window.loadWeightData(); 
-      }
+      if(confirm("確定要刪除這筆體重記錄嗎？")) { await deleteDoc(doc(db, "weight_logs", id)).catch(e => alert("刪除失敗")); window.loadWeightData(); }
   };
 
   window.loadWeightData = async () => {
       const querySnapshot = await getDocs(collection(db, "weight_logs")).catch(e => { return {forEach:()=>{}}; });
-      const logs = [];
-      querySnapshot.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
-      
+      const logs = []; querySnapshot.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
       logs.sort((a, b) => b.timestamp - a.timestamp); 
       let html = '';
       logs.slice(0, 10).forEach(log => { 
@@ -653,47 +430,20 @@
               const d = log.timestamp.toDate();
               timeStr = `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
           }
-          html += `
-          <div class="log-item">
-              <span class="log-time">${timeStr}</span>
-              <span style="color: var(--primary-dark); font-weight:bold;">${log.weight} kg</span>
-              <button onclick="deleteWeight('${log.id}')" style="background:none; border:none; color:#ff9e9e; font-size:1.2rem; cursor:pointer;">✖</button>
-          </div>`;
+          html += `<div class="log-item"><span class="log-time">${timeStr}</span><span style="color: var(--primary-dark); font-weight:bold;">${log.weight} kg</span><button onclick="deleteWeight('${log.id}')" style="background:none; border:none; color:#ff9e9e; font-size:1.2rem; cursor:pointer;">✖</button></div>`;
       });
       document.getElementById('weightLogList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">尚未有體重記錄喔。</div>';
-      
-      const chartLogs = [...logs].reverse(); 
-      const dailyWeight = {};
+      const chartLogs = [...logs].reverse(); const dailyWeight = {};
       chartLogs.forEach(log => { dailyWeight[log.date] = log.weight; });
-      
-      const labels = Object.keys(dailyWeight).sort();
-      const dataPoints = labels.map(date => dailyWeight[date]);
-      const displayLabels = labels.map(d => {
-          const parts = d.split('-');
-          return `${parts[1]}/${parts[2]}`;
-      });
-
+      const labels = Object.keys(dailyWeight).sort(); const dataPoints = labels.map(date => dailyWeight[date]);
+      const displayLabels = labels.map(d => { const parts = d.split('-'); return `${parts[1]}/${parts[2]}`; });
       if (weightChartInstance) { weightChartInstance.destroy(); }
       const ctx = document.getElementById('weightChart').getContext('2d');
       weightChartInstance = new Chart(ctx, {
-          type: 'line', 
-          data: {
-              labels: displayLabels.length > 0 ? displayLabels : ['尚未有記錄'],
-              datasets: [{
-                  label: '體重 (kg)',
-                  data: dataPoints.length > 0 ? dataPoints : [0],
-                  borderColor: '#ff6b8b', backgroundColor: 'rgba(255, 107, 139, 0.2)', 
-                  borderWidth: 2, fill: true, tension: 0.3, pointBackgroundColor: '#ff6b8b', pointRadius: 4
-              }]
-          },
-          options: {
-              responsive: true, maintainAspectRatio: false,
-              plugins: { legend: { display: false } }
-          }
+          type: 'line', data: { labels: displayLabels.length > 0 ? displayLabels : ['尚未有記錄'], datasets: [{ label: '體重 (kg)', data: dataPoints.length > 0 ? dataPoints : [0], borderColor: '#ff6b8b', backgroundColor: 'rgba(255, 107, 139, 0.2)', borderWidth: 2, fill: true, tension: 0.3, pointBackgroundColor: '#ff6b8b', pointRadius: 4 }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
       });
   };
 </script>
-
-
 </body>
 </html>
