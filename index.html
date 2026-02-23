@@ -323,8 +323,8 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, deleteDoc, doc } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-  // 🌟 這裡改成引入 signInWithRedirect
-  import { getAuth, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged, signOut } 
+  // 🌟 換回 signInWithPopup，對 iPhone 的相容性更好
+  import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   const firebaseConfig = {
@@ -372,9 +372,23 @@
       }
   });
 
-  // 🌟 這裡改成使用 Redirect (跳轉) 的方式登入，最適合手機！
-  window.signIn = () => {
-      signInWithRedirect(auth, provider);
+  // 🌟 加入了詳細的錯誤捕捉，不再卡白畫面
+  window.signIn = async () => {
+      try {
+          // 改變按鈕文字，讓你知道程式有在跑
+          const btn = event.target;
+          btn.innerText = "登入連線中...";
+          await signInWithPopup(auth, provider);
+      } catch (error) {
+          if (error.code === 'auth/unauthorized-domain') {
+              alert("⚠️ 錯誤：Firebase 尚未授權這個網址！\n請去 Firebase 後台的 Authentication -> 設定 -> 授權網域，加入 antinghu.github.io");
+          } else if (error.code === 'auth/popup-blocked') {
+              alert("⚠️ 錯誤：iPhone 擋住了登入視窗！\n請改用「一般的 Safari 瀏覽器」打開網頁登入。");
+          } else {
+              alert("登入發生錯誤：" + error.message);
+          }
+          event.target.innerText = "使用 Google 帳號登入"; // 恢復按鈕文字
+      }
   };
 
   window.logOut = () => {
@@ -435,7 +449,7 @@
           document.getElementById('logList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">今天還沒喝水喔，趕快喝一杯吧！</div>';
       }, (error) => {
           if(error.code === 'permission-denied') {
-              alert("⚠️ 權限錯誤：您登入的信箱不是授權的管理員信箱。請登出並更換正確的信箱！");
+              alert("⚠️ 權限錯誤：您登入的信箱不是當初設定授權的管理員信箱喔！請登出換一個信箱。");
           } else {
               console.error(error);
           }
@@ -679,6 +693,7 @@
       });
   };
 </script>
+
 
 </body>
 </html>
