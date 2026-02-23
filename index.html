@@ -323,11 +323,10 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, deleteDoc, doc } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-  // 新增引入 Firebase 認證功能
-  import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } 
+  // 🌟 這裡改成引入 signInWithRedirect
+  import { getAuth, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged, signOut } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-  // Firebase 設定
   const firebaseConfig = {
     apiKey: "AIzaSyDB3WJa1pmBcjxk0EKQM6is4z2n5oCY0W4",
     authDomain: "watertracker-1974e.firebaseapp.com",
@@ -345,9 +344,8 @@
   window.currentDocs = [];
   let waterChartInstance = null; 
   let weightChartInstance = null; 
-  let waterListenerUnsubscribe = null; // 用來控制資料庫連線開關
+  let waterListenerUnsubscribe = null; 
 
-  // --- 工具函數 ---
   function getTodayString() {
       const d = new Date();
       const offset = d.getTimezoneOffset() * 60000;
@@ -359,44 +357,34 @@
   document.getElementById('historyDate').value = todayStr; 
   document.getElementById('historyDate').max = todayStr;   
 
-  // ==========================================
-  // ========== 登入與安全驗證系統 ==========
-  // ==========================================
-
-  // 監聽使用者的登入狀態
+  // 監聽登入狀態
   onAuthStateChanged(auth, (user) => {
       if (user) {
-          // 已經登入成功
           document.getElementById('loginPage').classList.remove('active');
-          document.getElementById('bottomNav').style.display = 'flex'; // 顯示導覽列
-          switchTab('home'); // 自動跳轉到首頁
-          startWaterListener(); // 開始抓取資料庫資料
+          document.getElementById('bottomNav').style.display = 'flex'; 
+          switchTab('home'); 
+          startWaterListener(); 
       } else {
-          // 未登入，顯示登入畫面，隱藏其他所有東西
           document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
           document.getElementById('loginPage').classList.add('active');
-          document.getElementById('bottomNav').style.display = 'none'; // 隱藏導覽列
-          if (waterListenerUnsubscribe) waterListenerUnsubscribe(); // 關閉資料連線
+          document.getElementById('bottomNav').style.display = 'none'; 
+          if (waterListenerUnsubscribe) waterListenerUnsubscribe(); 
       }
   });
 
-  // 按下登入按鈕
+  // 🌟 這裡改成使用 Redirect (跳轉) 的方式登入，最適合手機！
   window.signIn = () => {
-      signInWithPopup(auth, provider).catch((error) => {
-          alert("登入失敗：" + error.message);
-      });
+      signInWithRedirect(auth, provider);
   };
 
-  // 按下登出按鈕
   window.logOut = () => {
       if(confirm("確定要登出嗎？")) {
           signOut(auth);
       }
   };
 
-  // --- 頁面切換邏輯 ---
   window.switchTab = (tabName) => {
-      if (!auth.currentUser) return; // 沒登入不准切換
+      if (!auth.currentUser) return; 
 
       document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
@@ -413,7 +401,6 @@
       }
   };
 
-  // --- 啟動今日資料即時監聽 ---
   function startWaterListener() {
       const qToday = query(collection(db, "water_logs"), where("date", "==", todayStr));
 
@@ -447,7 +434,6 @@
           document.getElementById('recordTotalAmount').innerText = total;
           document.getElementById('logList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">今天還沒喝水喔，趕快喝一杯吧！</div>';
       }, (error) => {
-          // 如果出現權限錯誤，代表用錯信箱登入了
           if(error.code === 'permission-denied') {
               alert("⚠️ 權限錯誤：您登入的信箱不是授權的管理員信箱。請登出並更換正確的信箱！");
           } else {
@@ -456,7 +442,6 @@
       });
   }
 
-  // --- 喝水記錄功能 ---
   window.addWater = async (amount, itemName = '') => {
       try {
           await addDoc(collection(db, "water_logs"), { amount, itemName, date: getTodayString(), timestamp: Timestamp.now() });
@@ -491,10 +476,6 @@
       } else alert("今天本來就沒有記錄喔！");
   };
 
-  // ==========================================
-  // ========== 自訂按鈕專區 ==========
-  // ==========================================
-
   window.renderCustomButtons = () => {
       const container = document.getElementById('customBtnGroup');
       const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
@@ -513,20 +494,16 @@
   window.addCustomButton = () => {
       let name = prompt("請輸入自訂水杯名稱\n(例如：我的保溫瓶)：", "");
       if (!name || name.trim() === "") return;
-      
       let amountStr = prompt(`請設定「${name}」的容量 (ml)：`, "600");
       if (!amountStr || amountStr.trim() === "") return;
-      
       let amount = parseInt(amountStr, 10);
       if (isNaN(amount) || amount <= 0) {
           alert("⚠️ 請輸入大於 0 的有效數字！");
           return;
       }
-
       const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
       buttons.push({ name: name.trim(), amount: amount });
       localStorage.setItem('myCustomWaterBtns', JSON.stringify(buttons));
-      
       window.renderCustomButtons();
       alert("✅ 按鈕新增成功！\n💡 小提示：如果之後想刪除它，對著按鈕「長按」就可以了喔！");
   };
@@ -542,7 +519,6 @@
 
   window.renderCustomButtons();
 
-  // --- 月曆頁功能 ---
   window.fetchHistoryByDate = async () => {
       const selectedDate = document.getElementById('historyDate').value;
       if (!selectedDate) return;
@@ -583,7 +559,6 @@
       const year = date.getFullYear();
       let month = date.getMonth() + 1;
       month = month < 10 ? '0' + month : month;
-      
       const startDate = `${year}-${month}-01`;
       const endDate = `${year}-${month}-31`;
 
@@ -594,7 +569,6 @@
       );
 
       const querySnapshot = await getDocs(qMonth).catch(e => { return {forEach:()=>{}}; });
-      
       const dailyTotals = {};
       querySnapshot.forEach((docSnap) => {
           const data = docSnap.data();
@@ -609,10 +583,7 @@
       });
       const dataPoints = sortedDates.map(d => dailyTotals[d]);
 
-      if (waterChartInstance) {
-          waterChartInstance.destroy();
-      }
-
+      if (waterChartInstance) { waterChartInstance.destroy(); }
       const ctx = document.getElementById('waterChart').getContext('2d');
       waterChartInstance = new Chart(ctx, {
           type: 'bar',
@@ -621,26 +592,17 @@
               datasets: [{
                   label: '每日喝水量 (ml)',
                   data: dataPoints.length > 0 ? dataPoints : [0],
-                  backgroundColor: '#ffb6c1', 
-                  borderColor: '#ff8da1',     
-                  borderWidth: 1,
-                  borderRadius: 6 
+                  backgroundColor: '#ffb6c1', borderColor: '#ff8da1', borderWidth: 1, borderRadius: 6 
               }]
           },
           options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              scales: {
-                  y: { beginAtZero: true }
-              },
-              plugins: {
-                  legend: { display: false } 
-              }
+              responsive: true, maintainAspectRatio: false,
+              scales: { y: { beginAtZero: true } },
+              plugins: { legend: { display: false } } 
           }
       });
   }
 
-  // --- 體重功能 ---
   window.saveWeight = async () => {
       const weightVal = document.getElementById('weightInput').value;
       if(!weightVal || weightVal <= 0) {
@@ -649,9 +611,7 @@
       }
       try {
           await addDoc(collection(db, "weight_logs"), { 
-              weight: parseFloat(weightVal), 
-              date: getTodayString(), 
-              timestamp: Timestamp.now() 
+              weight: parseFloat(weightVal), date: getTodayString(), timestamp: Timestamp.now() 
           });
           alert("✅ 體重儲存成功！");
           document.getElementById('weightInput').value = ''; 
@@ -672,7 +632,6 @@
       querySnapshot.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
       
       logs.sort((a, b) => b.timestamp - a.timestamp); 
-      
       let html = '';
       logs.slice(0, 10).forEach(log => { 
           let timeStr = '--/-- --:--';
@@ -709,23 +668,16 @@
               datasets: [{
                   label: '體重 (kg)',
                   data: dataPoints.length > 0 ? dataPoints : [0],
-                  borderColor: '#ff6b8b', 
-                  backgroundColor: 'rgba(255, 107, 139, 0.2)', 
-                  borderWidth: 2,
-                  fill: true,
-                  tension: 0.3, 
-                  pointBackgroundColor: '#ff6b8b',
-                  pointRadius: 4
+                  borderColor: '#ff6b8b', backgroundColor: 'rgba(255, 107, 139, 0.2)', 
+                  borderWidth: 2, fill: true, tension: 0.3, pointBackgroundColor: '#ff6b8b', pointRadius: 4
               }]
           },
           options: {
-              responsive: true,
-              maintainAspectRatio: false,
+              responsive: true, maintainAspectRatio: false,
               plugins: { legend: { display: false } }
           }
       });
   };
-
 </script>
 
 </body>
