@@ -92,10 +92,18 @@
 
 <div class="app-container">
     <div id="loginPage" class="page active" style="text-align: center; display: flex; flex-direction: column; justify-content: center; height: 85vh;">
-        <div class="card" style="padding: 3rem 2rem;">
-            <h1 style="font-size: 2rem; margin-bottom: 1rem;">🔒 專屬記錄</h1>
-            <p class="date-subtitle">為了保護您的資料安全，請先登入</p>
-            <button id="loginBtn" class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem; margin-top: 20px;" onclick="signIn()">
+        <div class="card" style="padding: 2rem 1.5rem;">
+            <h1 style="font-size: 1.8rem; margin-bottom: 0.5rem;">🔒 專屬記錄</h1>
+            <p class="date-subtitle">為了保護您的資料，請先登入</p>
+            
+            <div style="background-color: #fff0f5; border: 2px solid #ffb6c1; padding: 12px; border-radius: 12px; margin-bottom: 20px; text-align: left; font-size: 0.85rem; color: #5c4044; line-height: 1.5;">
+                <b style="color: #ff6b8b;">🍎 iPhone 用戶必看：</b><br>
+                蘋果的安全機制會沒收登入鑰匙，請先至手機的：<br>
+                <b>「設定」➔「Safari」</b><br>
+                將 <b>「防止跨站追蹤」</b> 關閉，才能順利登入喔！
+            </div>
+
+            <button id="loginBtn" class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem;" onclick="signIn()">
                 使用 Google 帳號登入
             </button>
         </div>
@@ -192,8 +200,8 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-  // 🌟 換回最穩定的 signInWithPopup 彈出視窗模式
-  import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  // 使用最穩定的 Redirect 跳轉機制
+  import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDB3WJa1pmBcjxk0EKQM6is4z2n5oCY0W4",
@@ -225,6 +233,17 @@
   document.getElementById('historyDate').value = todayStr; 
   document.getElementById('historyDate').max = todayStr;   
 
+  // ==========================================
+  // 🌟 攔截登入錯誤，直接跳窗告訴你原因
+  // ==========================================
+  getRedirectResult(auth).then((result) => {
+      if(result) console.log("跳轉登入成功");
+  }).catch((error) => {
+      alert("⚠️ 登入失敗！\n原因：" + error.message + "\n\n請確認：\n1. Safari的「防止跨站追蹤」已關閉\n2. Firebase 有將網址加入授權");
+      const btn = document.getElementById('loginBtn');
+      if (btn) btn.innerText = "重新嘗試登入";
+  });
+
   // 監聽登入狀態
   onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -240,24 +259,11 @@
       }
   });
 
-  // 🌟 使用 Popup 登入，並精準捕捉 iPhone Safari 的各種擋板錯誤
+  // 點擊按鈕執行跳轉
   window.signIn = () => {
       const btn = document.getElementById('loginBtn');
-      if(btn) btn.innerText = "開啟登入視窗中...";
-
-      signInWithPopup(auth, provider).then((result) => {
-          // 登入成功，onAuthStateChanged 會自動處理畫面切換
-      }).catch((error) => {
-          console.error(error);
-          if (error.code === 'auth/popup-blocked') {
-              alert("⚠️ 蘋果把登入視窗擋住了！\n請去手機的「設定」->「Safari」-> 把「阻擋彈出式視窗」關閉，再試一次！");
-          } else if (error.code === 'auth/unauthorized-domain') {
-              alert("⚠️ 網址未授權！\n請去 Firebase 後台的 Authentication -> 設定 -> 授權網域，加入 antinghu.github.io");
-          } else {
-              alert("登入發生錯誤：" + error.message);
-          }
-          if(btn) btn.innerText = "使用 Google 帳號登入"; // 恢復按鈕
-      });
+      if(btn) btn.innerText = "準備跳轉至 Google...";
+      signInWithRedirect(auth, provider);
   };
 
   window.logOut = () => { if(confirm("確定要登出嗎？")) signOut(auth); };
