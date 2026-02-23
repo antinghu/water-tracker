@@ -113,7 +113,7 @@
         .log-time { color: var(--text-light); font-weight: bold; }
         .log-name { font-size: 0.8em; color: var(--primary); margin-left: 5px; background: var(--bg-color); padding: 2px 6px; border-radius: 8px; }
 
-        /* --- 圖表與輸入框專用 --- */
+        /* --- 圖表與輸入框 --- */
         .chart-container { position: relative; height: 200px; width: 100%; margin-bottom: 1.5rem; }
         .date-picker-wrapper { text-align: center; margin-bottom: 1rem; }
         input[type="date"], input[type="number"] {
@@ -125,7 +125,6 @@
             background: var(--bg-color);
             outline: none;
         }
-        
         .weight-input-container {
             display: flex;
             justify-content: center;
@@ -144,12 +143,12 @@
 
         /* --- 底部導覽列 --- */
         .bottom-nav {
+            display: none; /* 預設隱藏，登入後才顯示 */
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
             background: var(--white);
-            display: flex;
             justify-content: space-around;
             padding: 10px 0;
             box-shadow: 0 -2px 15px rgba(0,0,0,0.05);
@@ -181,7 +180,17 @@
 
 <div class="app-container">
 
-    <div id="homePage" class="page active">
+    <div id="loginPage" class="page active" style="text-align: center; display: flex; flex-direction: column; justify-content: center; height: 85vh;">
+        <div class="card" style="padding: 3rem 2rem;">
+            <h1 style="font-size: 2rem; margin-bottom: 1rem;">🔒 專屬記錄</h1>
+            <p class="date-subtitle">為了保護您的資料安全，請先登入</p>
+            <button class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem; margin-top: 20px;" onclick="signIn()">
+                使用 Google 帳號登入
+            </button>
+        </div>
+    </div>
+
+    <div id="homePage" class="page">
         <div class="card">
             <h1>沒事多喝水</h1>
             <div class="date-subtitle" id="homeDateDisplay">載入中...</div>
@@ -195,6 +204,8 @@
             <button class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem; margin-top: 10px;" onclick="switchTab('record')">
                 💧 點我喝水
             </button>
+            
+            <button onclick="logOut()" style="margin-top:20px; background:none; border:none; color:var(--text-light); cursor:pointer; font-size:0.8rem; text-decoration:underline;">登出帳號</button>
         </div>
     </div>
 
@@ -287,7 +298,7 @@
         </div>
     </div>
 
-    <div class="bottom-nav">
+    <div class="bottom-nav" id="bottomNav">
         <button class="nav-item active" onclick="switchTab('home')" id="tab-home">
             <span class="nav-icon">🏠</span>
             <span>首頁</span>
@@ -312,6 +323,9 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, deleteDoc, doc } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  // 新增引入 Firebase 認證功能
+  import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } 
+    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   // Firebase 設定
   const firebaseConfig = {
@@ -325,10 +339,13 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
 
   window.currentDocs = [];
   let waterChartInstance = null; 
   let weightChartInstance = null; 
+  let waterListenerUnsubscribe = null; // 用來控制資料庫連線開關
 
   // --- 工具函數 ---
   function getTodayString() {
@@ -342,13 +359,51 @@
   document.getElementById('historyDate').value = todayStr; 
   document.getElementById('historyDate').max = todayStr;   
 
+  // ==========================================
+  // ========== 登入與安全驗證系統 ==========
+  // ==========================================
+
+  // 監聽使用者的登入狀態
+  onAuthStateChanged(auth, (user) => {
+      if (user) {
+          // 已經登入成功
+          document.getElementById('loginPage').classList.remove('active');
+          document.getElementById('bottomNav').style.display = 'flex'; // 顯示導覽列
+          switchTab('home'); // 自動跳轉到首頁
+          startWaterListener(); // 開始抓取資料庫資料
+      } else {
+          // 未登入，顯示登入畫面，隱藏其他所有東西
+          document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+          document.getElementById('loginPage').classList.add('active');
+          document.getElementById('bottomNav').style.display = 'none'; // 隱藏導覽列
+          if (waterListenerUnsubscribe) waterListenerUnsubscribe(); // 關閉資料連線
+      }
+  });
+
+  // 按下登入按鈕
+  window.signIn = () => {
+      signInWithPopup(auth, provider).catch((error) => {
+          alert("登入失敗：" + error.message);
+      });
+  };
+
+  // 按下登出按鈕
+  window.logOut = () => {
+      if(confirm("確定要登出嗎？")) {
+          signOut(auth);
+      }
+  };
+
   // --- 頁面切換邏輯 ---
   window.switchTab = (tabName) => {
+      if (!auth.currentUser) return; // 沒登入不准切換
+
       document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
       
       document.getElementById(tabName + 'Page').classList.add('active');
-      document.getElementById('tab-' + tabName).classList.add('active');
+      const tabBtn = document.getElementById('tab-' + tabName);
+      if(tabBtn) tabBtn.classList.add('active');
 
       if (tabName === 'calendar') {
           loadMonthlyChart();
@@ -358,45 +413,54 @@
       }
   };
 
-  // --- 今日資料即時監聽 ---
-  const qToday = query(collection(db, "water_logs"), where("date", "==", todayStr));
+  // --- 啟動今日資料即時監聽 ---
+  function startWaterListener() {
+      const qToday = query(collection(db, "water_logs"), where("date", "==", todayStr));
 
-  onSnapshot(qToday, (snapshot) => {
-      let total = 0;
-      let html = '';
-      const docs = [];
-      
-      snapshot.forEach((docSnap) => {
-          docs.push({ id: docSnap.id, ...docSnap.data() });
-      });
-      docs.sort((a, b) => b.timestamp - a.timestamp); 
-      window.currentDocs = docs;
+      waterListenerUnsubscribe = onSnapshot(qToday, (snapshot) => {
+          let total = 0;
+          let html = '';
+          const docs = [];
+          
+          snapshot.forEach((docSnap) => {
+              docs.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          docs.sort((a, b) => b.timestamp - a.timestamp); 
+          window.currentDocs = docs;
 
-      docs.forEach((data) => {
-          total += data.amount;
-          let timeStr = '--:--';
-          if (data.timestamp) {
-              const dateObj = data.timestamp.toDate();
-              timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + dateObj.getMinutes().toString().padStart(2, '0');
+          docs.forEach((data) => {
+              total += data.amount;
+              let timeStr = '--:--';
+              if (data.timestamp) {
+                  const dateObj = data.timestamp.toDate();
+                  timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + dateObj.getMinutes().toString().padStart(2, '0');
+              }
+              let itemName = data.itemName ? `<span class="log-name">${data.itemName}</span>` : '';
+              html += `
+                <div class="log-item">
+                    <div><span class="log-time">${timeStr}</span> ${itemName}</div>
+                    <span style="color: var(--primary-dark); font-weight:bold;">${data.amount} ml</span>
+                </div>`;
+          });
+
+          document.getElementById('homeTotalAmount').innerText = total;
+          document.getElementById('recordTotalAmount').innerText = total;
+          document.getElementById('logList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">今天還沒喝水喔，趕快喝一杯吧！</div>';
+      }, (error) => {
+          // 如果出現權限錯誤，代表用錯信箱登入了
+          if(error.code === 'permission-denied') {
+              alert("⚠️ 權限錯誤：您登入的信箱不是授權的管理員信箱。請登出並更換正確的信箱！");
+          } else {
+              console.error(error);
           }
-          let itemName = data.itemName ? `<span class="log-name">${data.itemName}</span>` : '';
-          html += `
-            <div class="log-item">
-                <div><span class="log-time">${timeStr}</span> ${itemName}</div>
-                <span style="color: var(--primary-dark); font-weight:bold;">${data.amount} ml</span>
-            </div>`;
       });
-
-      document.getElementById('homeTotalAmount').innerText = total;
-      document.getElementById('recordTotalAmount').innerText = total;
-      document.getElementById('logList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">今天還沒喝水喔，趕快喝一杯吧！</div>';
-  });
+  }
 
   // --- 喝水記錄功能 ---
   window.addWater = async (amount, itemName = '') => {
       try {
           await addDoc(collection(db, "water_logs"), { amount, itemName, date: getTodayString(), timestamp: Timestamp.now() });
-      } catch (e) { alert("上傳失敗：" + e.message); }
+      } catch (e) { alert("上傳失敗，請確認您登入的信箱是否正確。"); }
   };
 
   window.customInput = () => {
@@ -412,7 +476,7 @@
       if (window.currentDocs.length > 0) {
           const lastRecord = window.currentDocs[0];
           if (confirm(`確定要刪除剛才喝的 ${lastRecord.amount} ml 嗎？`)) {
-              await deleteDoc(doc(db, "water_logs", lastRecord.id));
+              await deleteDoc(doc(db, "water_logs", lastRecord.id)).catch(e => alert("刪除失敗"));
           }
       } else alert("今天還沒有記錄喔！");
   };
@@ -421,7 +485,7 @@
       if (window.currentDocs.length > 0) {
           if (confirm("⚠️ 確定要清除今天的『所有』記錄嗎？")) {
               for (let i = 0; i < window.currentDocs.length; i++) {
-                  await deleteDoc(doc(db, "water_logs", window.currentDocs[i].id));
+                  await deleteDoc(doc(db, "water_logs", window.currentDocs[i].id)).catch(e => console.error(e));
               }
           }
       } else alert("今天本來就沒有記錄喔！");
@@ -478,14 +542,13 @@
 
   window.renderCustomButtons();
 
-
   // --- 月曆頁功能 ---
   window.fetchHistoryByDate = async () => {
       const selectedDate = document.getElementById('historyDate').value;
       if (!selectedDate) return;
 
       const qHistory = query(collection(db, "water_logs"), where("date", "==", selectedDate));
-      const querySnapshot = await getDocs(qHistory);
+      const querySnapshot = await getDocs(qHistory).catch(e => { alert("讀取權限不足"); return {forEach:()=>{}}; });
       
       let total = 0;
       let html = '';
@@ -530,7 +593,7 @@
           where("date", "<=", endDate)
       );
 
-      const querySnapshot = await getDocs(qMonth);
+      const querySnapshot = await getDocs(qMonth).catch(e => { return {forEach:()=>{}}; });
       
       const dailyTotals = {};
       querySnapshot.forEach((docSnap) => {
@@ -593,18 +656,18 @@
           alert("✅ 體重儲存成功！");
           document.getElementById('weightInput').value = ''; 
           window.loadWeightData(); 
-      } catch (e) { alert("儲存失敗：" + e.message); }
+      } catch (e) { alert("儲存失敗，請確認登入信箱。"); }
   };
 
   window.deleteWeight = async (id) => {
       if(confirm("確定要刪除這筆體重記錄嗎？")) {
-          await deleteDoc(doc(db, "weight_logs", id));
+          await deleteDoc(doc(db, "weight_logs", id)).catch(e => alert("刪除失敗"));
           window.loadWeightData(); 
       }
   };
 
   window.loadWeightData = async () => {
-      const querySnapshot = await getDocs(collection(db, "weight_logs"));
+      const querySnapshot = await getDocs(collection(db, "weight_logs")).catch(e => { return {forEach:()=>{}}; });
       const logs = [];
       querySnapshot.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
       
