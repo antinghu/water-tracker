@@ -88,8 +88,6 @@
         .nav-item { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--text-light); font-size: 0.75rem; cursor: pointer; padding: 5px 10px; flex: 1; }
         .nav-item.active { color: var(--primary-dark); font-weight: bold; }
         .nav-icon { font-size: 1.5rem; margin-bottom: 3px; }
-        
-        /* 登入表單專用樣式 */
         .login-input { width: 100%; margin-bottom: 15px; font-size: 1rem; }
     </style>
 </head>
@@ -101,7 +99,7 @@
             <h1 style="font-size: 1.8rem; margin-bottom: 0.5rem;">🔒 專屬記錄</h1>
             <p class="date-subtitle" style="margin-bottom: 1.5rem;">請輸入您的專屬帳號密碼</p>
             
-            <input type="email" id="emailInput" class="login-input" placeholder="請輸入信箱" value="anting0926@gmail.com">
+            <input type="email" id="emailInput" class="login-input" placeholder="請輸入信箱">
             <input type="password" id="pwdInput" class="login-input" placeholder="請輸入密碼">
 
             <button id="loginBtn" class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem; margin-top: 10px;" onclick="signIn()">
@@ -201,7 +199,6 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-  // 🌟 改引入 signInWithEmailAndPassword (最穩定的登入方式)
   import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   const firebaseConfig = {
@@ -233,7 +230,6 @@
   document.getElementById('historyDate').value = todayStr; 
   document.getElementById('historyDate').max = todayStr;   
 
-  // 監聽登入狀態
   onAuthStateChanged(auth, (user) => {
       if (user) {
           document.getElementById('loginPage').classList.remove('active');
@@ -248,30 +244,22 @@
       }
   });
 
-  // 🌟 全新的帳號密碼登入邏輯，完全避開蘋果的視窗阻擋
   window.signIn = () => {
-      const email = document.getElementById('emailInput').value;
+      const email = document.getElementById('emailInput').value.trim();
       const pwd = document.getElementById('pwdInput').value;
       const btn = document.getElementById('loginBtn');
       
-      if(!email || !pwd) {
-          alert("請輸入信箱與密碼！");
-          return;
-      }
+      if(!email || !pwd) { alert("請輸入信箱與密碼！"); return; }
       
       btn.innerText = "驗證中...";
       
       signInWithEmailAndPassword(auth, email, pwd)
-          .then((userCredential) => {
-              // 登入成功，onAuthStateChanged 會自動切換畫面
-              btn.innerText = "登入成功！";
+          .then(() => {
+              console.log("Login success");
           })
           .catch((error) => {
-              console.error(error);
-              if(error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-                  alert("⚠️ 登入失敗：帳號或密碼錯誤！\n請確定您有先在 Firebase 後台建立好密碼喔。");
-              } else {
-                  alert("登入發生錯誤：" + error.message);
+              if(error.code !== 'auth/user-cancelled') {
+                  alert("⚠️ 登入失敗：帳號或密碼錯誤！");
               }
               btn.innerText = "立即登入";
           });
@@ -310,14 +298,13 @@
           document.getElementById('recordTotalAmount').innerText = total;
           document.getElementById('logList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">今天還沒喝水喔，趕快喝一杯吧！</div>';
       }, (error) => {
-          if(error.code === 'permission-denied') alert("⚠️ 權限錯誤：登入的信箱不是管理員喔！");
-          else console.error(error);
+          console.error("Listener error:", error);
       });
   }
 
   window.addWater = async (amount, itemName = '') => {
       try { await addDoc(collection(db, "water_logs"), { amount, itemName, date: getTodayString(), timestamp: Timestamp.now() }); } 
-      catch (e) { alert("上傳失敗，請確認您登入的信箱是否正確。"); }
+      catch (e) { console.error(e); }
   };
 
   window.customInput = () => {
@@ -369,7 +356,6 @@
       buttons.push({ name: name.trim(), amount: amount });
       localStorage.setItem('myCustomWaterBtns', JSON.stringify(buttons));
       window.renderCustomButtons();
-      alert("✅ 按鈕新增成功！\n💡 小提示：如果之後想刪除它，對著按鈕「長按」就可以了喔！");
   };
 
   window.removeCustomButton = (index) => {
@@ -386,7 +372,7 @@
       const selectedDate = document.getElementById('historyDate').value;
       if (!selectedDate) return;
       const qHistory = query(collection(db, "water_logs"), where("date", "==", selectedDate));
-      const querySnapshot = await getDocs(qHistory).catch(e => { alert("讀取權限不足"); return {forEach:()=>{}}; });
+      const querySnapshot = await getDocs(qHistory).catch(e => { return {forEach:()=>{}}; });
       let total = 0; let html = ''; const historyDocs = [];
       querySnapshot.forEach((docSnap) => { historyDocs.push(docSnap.data()); });
       historyDocs.sort((a, b) => b.timestamp - a.timestamp);
@@ -432,11 +418,11 @@
       try {
           await addDoc(collection(db, "weight_logs"), { weight: parseFloat(weightVal), date: getTodayString(), timestamp: Timestamp.now() });
           alert("✅ 體重儲存成功！"); document.getElementById('weightInput').value = ''; window.loadWeightData(); 
-      } catch (e) { alert("儲存失敗，請確認登入信箱。"); }
+      } catch (e) { alert("儲存失敗"); }
   };
 
   window.deleteWeight = async (id) => {
-      if(confirm("確定要刪除這筆體重記錄嗎？")) { await deleteDoc(doc(db, "weight_logs", id)).catch(e => alert("刪除失敗")); window.loadWeightData(); }
+      if(confirm("確定要刪除這筆體重記錄嗎？")) { await deleteDoc(doc(db, "weight_logs", id)); window.loadWeightData(); }
   };
 
   window.loadWeightData = async () => {
