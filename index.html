@@ -192,8 +192,8 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-  // 🌟 改用 signInWithRedirect (整頁跳轉) 以及 getRedirectResult (抓取錯誤)
-  import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  // 🌟 換回最穩定的 signInWithPopup 彈出視窗模式
+  import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDB3WJa1pmBcjxk0EKQM6is4z2n5oCY0W4",
@@ -225,16 +225,6 @@
   document.getElementById('historyDate').value = todayStr; 
   document.getElementById('historyDate').max = todayStr;   
 
-  // ==========================================
-  // 🌟 核心：處理網頁跳轉回來的結果 (超級除錯器)
-  // ==========================================
-  getRedirectResult(auth).catch((error) => {
-      // 如果跳轉失敗，這裡會立刻攔截並顯示錯誤訊息
-      alert("⚠️ 登入失敗！\n錯誤訊息：" + error.message + "\n\n💡 請確保 Firebase 後台已將 antinghu.github.io 加入授權網域！");
-      const btn = document.getElementById('loginBtn');
-      if (btn) btn.innerText = "重新嘗試登入";
-  });
-
   // 監聽登入狀態
   onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -250,11 +240,24 @@
       }
   });
 
-  // 登入按鈕綁定 (改為整頁跳轉)
+  // 🌟 使用 Popup 登入，並精準捕捉 iPhone Safari 的各種擋板錯誤
   window.signIn = () => {
       const btn = document.getElementById('loginBtn');
-      if(btn) btn.innerText = "準備跳轉至 Google...";
-      signInWithRedirect(auth, provider); // 使用手機最穩定的 Redirect
+      if(btn) btn.innerText = "開啟登入視窗中...";
+
+      signInWithPopup(auth, provider).then((result) => {
+          // 登入成功，onAuthStateChanged 會自動處理畫面切換
+      }).catch((error) => {
+          console.error(error);
+          if (error.code === 'auth/popup-blocked') {
+              alert("⚠️ 蘋果把登入視窗擋住了！\n請去手機的「設定」->「Safari」-> 把「阻擋彈出式視窗」關閉，再試一次！");
+          } else if (error.code === 'auth/unauthorized-domain') {
+              alert("⚠️ 網址未授權！\n請去 Firebase 後台的 Authentication -> 設定 -> 授權網域，加入 antinghu.github.io");
+          } else {
+              alert("登入發生錯誤：" + error.message);
+          }
+          if(btn) btn.innerText = "使用 Google 帳號登入"; // 恢復按鈕
+      });
   };
 
   window.logOut = () => { if(confirm("確定要登出嗎？")) signOut(auth); };
