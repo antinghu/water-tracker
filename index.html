@@ -31,12 +31,26 @@
             min-height: 100vh;
             background: transparent;
         }
+        
+        /* 🌟 修正排版衝突：讓顯示和隱藏非常乾淨 */
         .page {
             display: none;
             padding: 1.5rem;
             animation: fadeIn 0.3s ease-in-out;
+            box-sizing: border-box;
         }
-        .page.active { display: block; }
+        .page.active { 
+            display: block; 
+        }
+        /* 專門給登入頁面的排版，拿掉就會徹底消失 */
+        #loginPage.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 85vh;
+            text-align: center;
+        }
+        
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -99,7 +113,7 @@
         ✅ 已登入：<span id="currentUserEmail" style="font-weight: bold; color: var(--primary-dark);"></span>
     </div>
 
-    <div id="loginPage" class="page active" style="text-align: center; display: flex; flex-direction: column; justify-content: center; height: 85vh;">
+    <div id="loginPage" class="page active">
         <div class="card" style="padding: 2rem 1.5rem;">
             <h1 style="font-size: 1.8rem; margin-bottom: 0.5rem;">🔒 專屬記錄</h1>
             <p class="date-subtitle" style="margin-bottom: 1.5rem;">請輸入您的專屬帳號密碼</p>
@@ -235,21 +249,19 @@
   document.getElementById('historyDate').value = todayStr; 
   document.getElementById('historyDate').max = todayStr;   
 
-  // 🌟 自動管理畫面顯示與隱藏（保證登入窗格會完全消失）
+  // 自動登入狀態判定：確保登入頁面真的消失
   onAuthStateChanged(auth, (user) => {
       if (user) {
-          // 登入成功：顯示頂部小字、導覽列，並切換到首頁
           document.getElementById('userStatusBar').style.display = 'block';
           document.getElementById('currentUserEmail').innerText = user.email;
-          document.getElementById('loginPage').classList.remove('active'); // 徹底隱藏登入頁面
+          document.getElementById('loginPage').classList.remove('active'); // 移除 active 狀態
           document.getElementById('bottomNav').style.display = 'flex'; 
           switchTab('home'); 
           startWaterListener(); 
       } else {
-          // 未登入/已登出：隱藏全部東西，只顯示登入畫面
           document.getElementById('userStatusBar').style.display = 'none';
           document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-          document.getElementById('loginPage').classList.add('active'); // 只顯示登入頁面
+          document.getElementById('loginPage').classList.add('active'); // 只有登入頁面是 active
           document.getElementById('bottomNav').style.display = 'none'; 
           if (waterListenerUnsubscribe) { waterListenerUnsubscribe(); waterListenerUnsubscribe = null; }
       }
@@ -266,12 +278,14 @@
       
       signInWithEmailAndPassword(auth, email, pwd)
           .then(() => {
-              // 成功時清空密碼，畫面切換會交給上面的 onAuthStateChanged 自動處理
+              btn.innerText = "登入成功！";
               document.getElementById('pwdInput').value = '';
-              btn.innerText = "立即登入"; 
+              // 畫面切換交給 onAuthStateChanged 自動處理
           })
           .catch((error) => {
-              alert("⚠️ 登入失敗：帳號或密碼錯誤！");
+              if(error.code !== 'auth/user-cancelled') {
+                  alert("⚠️ 登入失敗：帳號或密碼錯誤！");
+              }
               btn.innerText = "立即登入";
           });
   };
@@ -279,9 +293,9 @@
   window.logOut = () => { 
       if(confirm("確定要登出嗎？")) {
           signOut(auth).then(() => {
-              // 登出後清空所有輸入框
               document.getElementById('emailInput').value = '';
               document.getElementById('pwdInput').value = '';
+              document.getElementById('loginBtn').innerText = "立即登入";
           });
       }
   };
@@ -320,6 +334,9 @@
           document.getElementById('logList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">今天還沒喝水喔，趕快喝一杯吧！</div>';
       }, (error) => {
           console.error("Listener error:", error);
+          if(error.code === 'permission-denied') {
+              alert("⚠️ 權限錯誤：資料庫規則尚未更新信箱！");
+          }
       });
   }
 
