@@ -66,6 +66,18 @@
         .nav-item.active { color: var(--primary-dark); font-weight: bold; }
         .nav-icon { font-size: 1.4rem; margin-bottom: 3px; }
         .login-input { width: 100%; margin-bottom: 15px; font-size: 1rem; }
+        
+        /* 🌟 新增：補登視窗的樣式 */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-card {
+            background: var(--white); width: 85%; max-width: 350px; padding: 1.5rem;
+            border-radius: 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
@@ -117,6 +129,7 @@
                 <button class="btn btn-undo" onclick="undoLast()">↩️ 上一步</button>
                 <button class="btn btn-clear" onclick="clearToday()">🗑️ 清除今日</button>
             </div>
+            <button class="btn btn-custom" style="width: 100%; margin-top: 5px; border-style: dashed; color: #f39c12; border-color: #f39c12;" onclick="openRetroModal('water')">📅 忘記記了？點我補登記錄</button>
         </div>
         <div class="card history-section">
             <h3 style="margin-top:0;">今日記錄</h3>
@@ -133,6 +146,7 @@
                 <span style="font-size: 1.5rem; color: var(--text-light); font-weight: bold;">kg</span>
             </div>
             <button class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem;" onclick="saveWeight()">儲存體重</button>
+            <button class="btn btn-custom" style="width: 100%; padding: 12px; margin-top: 15px; border-style: dashed; color: #9b59b6; border-color: #9b59b6;" onclick="openRetroModal('weight')">📅 補登以往體重</button>
         </div>
         <div class="card">
             <h3>📈 體重趨勢</h3>
@@ -168,6 +182,7 @@
 
             <textarea id="dietInput" placeholder="點擊上方按鈕，或在此手動輸入..." rows="3" style="width: 100%; margin-bottom: 15px; resize: none; font-size:1rem;"></textarea>
             <button class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem;" onclick="saveDiet()">儲存飲食</button>
+            <button class="btn btn-custom" style="width: 100%; padding: 12px; margin-top: 15px; border-style: dashed; color: #27ae60; border-color: #27ae60;" onclick="openRetroModal('diet')">📅 補登以往飲食</button>
         </div>
         <div class="card history-section">
             <h3 style="margin-top:0;">近期記錄</h3>
@@ -208,6 +223,25 @@
         <button class="nav-item" onclick="switchTab('diet')" id="tab-diet"><span class="nav-icon">🍱</span><span>飲食</span></button>
         <button class="nav-item" onclick="switchTab('calendar')" id="tab-calendar"><span class="nav-icon">📅</span><span>月曆</span></button>
     </div>
+
+    <div id="retroModal" class="modal-overlay">
+        <div class="modal-card">
+            <h2 id="retroModalTitle" style="margin-top: 0; color: var(--text-dark); font-size: 1.3rem;">📅 補登記錄</h2>
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">請選擇日期與輸入內容</p>
+            
+            <input type="date" id="retroDate" style="width: 100%; margin-bottom: 15px;">
+            
+            <input type="number" id="retroWater" placeholder="輸入喝水量 (ml)" style="width: 100%; margin-bottom: 15px; display: none;">
+            <input type="number" id="retroWeight" step="0.1" placeholder="輸入體重 (kg)" style="width: 100%; margin-bottom: 15px; display: none;">
+            <textarea id="retroDiet" placeholder="輸入補登的飲食內容..." rows="3" style="width: 100%; margin-bottom: 15px; resize: none; display: none;"></textarea>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-undo" style="flex: 1;" onclick="closeRetroModal()">取消</button>
+                <button id="retroSaveBtn" class="btn btn-add" style="flex: 1;" onclick="saveRetroRecord()">確認補登</button>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script type="module">
@@ -388,7 +422,6 @@
       const selectedDate = document.getElementById('historyDate').value;
       if (!selectedDate) return;
 
-      // 查喝水
       const qWater = query(collection(db, "water_logs"), where("date", "==", selectedDate));
       const snapWater = await getDocs(qWater).catch(e => { return {forEach:()=>{}}; });
       let waterTotal = 0; let waterHtml = ''; const waterDocs = [];
@@ -406,7 +439,6 @@
       document.getElementById('historyTotal').innerText = `${waterTotal} ml`;
       document.getElementById('historyLogList').innerHTML = waterHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無喝水記錄</div>';
 
-      // 查體重
       const qWeight = query(collection(db, "weight_logs"), where("date", "==", selectedDate));
       const snapWeight = await getDocs(qWeight).catch(e => { return {forEach:()=>{}}; });
       let weightHtml = ''; const weightDocs = [];
@@ -421,7 +453,6 @@
       });
       document.getElementById('historyWeightList').innerHTML = weightHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無體重記錄</div>';
 
-      // 查飲食
       const qDiet = query(collection(db, "diet_logs"), where("date", "==", selectedDate));
       const snapDiet = await getDocs(qDiet).catch(e => { return {forEach:()=>{}}; });
       let dietHtml = ''; const dietDocs = [];
@@ -501,15 +532,11 @@
       });
   };
 
-  // --- 🌟 飲食功能 ---
+  // --- 飲食功能 ---
   window.appendDiet = (text) => {
       const input = document.getElementById('dietInput');
-      // 如果原本有字，就加上「 + 」，如果沒有就直接填寫
-      if (input.value.trim() !== '') {
-          input.value += ' + ' + text;
-      } else {
-          input.value = text;
-      }
+      if (input.value.trim() !== '') { input.value += ' + ' + text; } 
+      else { input.value = text; }
   };
 
   window.saveDiet = async () => {
@@ -544,6 +571,73 @@
                    </div>`;
       });
       document.getElementById('dietLogList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">尚未有飲食記錄喔。</div>';
+  };
+
+  // --- 🌟 萬用補登功能 (Retro) ---
+  window.retroType = '';
+  
+  window.openRetroModal = (type) => {
+      document.getElementById('retroModal').classList.add('active');
+      const dInput = document.getElementById('retroDate');
+      dInput.max = getTodayString();
+      dInput.value = getTodayString();
+      
+      document.getElementById('retroWater').style.display = (type === 'water') ? 'block' : 'none';
+      document.getElementById('retroWeight').style.display = (type === 'weight') ? 'block' : 'none';
+      document.getElementById('retroDiet').style.display = (type === 'diet') ? 'block' : 'none';
+      
+      const title = document.getElementById('retroModalTitle');
+      if(type === 'water') title.innerText = '💧 補登喝水';
+      if(type === 'weight') title.innerText = '⚖️ 補登體重';
+      if(type === 'diet') title.innerText = '🍱 補登飲食';
+      
+      window.retroType = type;
+  };
+
+  window.closeRetroModal = () => {
+      document.getElementById('retroModal').classList.remove('active');
+      document.getElementById('retroWater').value = '';
+      document.getElementById('retroWeight').value = '';
+      document.getElementById('retroDiet').value = '';
+  };
+
+  window.saveRetroRecord = async () => {
+      const rDate = document.getElementById('retroDate').value;
+      if(!rDate) { alert("請選擇日期！"); return; }
+      
+      // 建立假時間 (當天中午12點)，確保月曆排序合理
+      const dParts = rDate.split('-');
+      const dObj = new Date(dParts[0], dParts[1]-1, dParts[2], 12, 0, 0);
+      const retroTimestamp = Timestamp.fromDate(dObj);
+      
+      const btn = document.getElementById('retroSaveBtn');
+      btn.innerText = "儲存中...";
+
+      try {
+          if(window.retroType === 'water') {
+              const val = parseInt(document.getElementById('retroWater').value, 10);
+              if(isNaN(val) || val <= 0) throw new Error("請輸入有效水量");
+              await addDoc(collection(db, "water_logs"), { amount: val, itemName: '📅 補登記錄', date: rDate, timestamp: retroTimestamp });
+          } 
+          else if (window.retroType === 'weight') {
+              const val = parseFloat(document.getElementById('retroWeight').value);
+              if(isNaN(val) || val <= 0) throw new Error("請輸入有效體重");
+              await addDoc(collection(db, "weight_logs"), { weight: val, date: rDate, timestamp: retroTimestamp });
+              window.loadWeightData();
+          } 
+          else if (window.retroType === 'diet') {
+              const val = document.getElementById('retroDiet').value.trim();
+              if(!val) throw new Error("請輸入飲食內容");
+              await addDoc(collection(db, "diet_logs"), { meal: val, date: rDate, timestamp: retroTimestamp });
+              window.loadDietData();
+          }
+          
+          alert("✅ 補登成功！請至「月曆」分頁查詢。");
+          window.closeRetroModal();
+      } catch (e) {
+          alert(e.message || "儲存失敗，請重試");
+      }
+      btn.innerText = "確認補登";
   };
 
 </script>
