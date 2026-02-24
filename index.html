@@ -94,6 +94,11 @@
 <body>
 
 <div class="app-container">
+
+    <div id="userStatusBar" style="display:none; text-align: center; font-size: 0.8rem; color: var(--text-light); margin: 15px 0 5px 0;">
+        ✅ 已登入：<span id="currentUserEmail" style="font-weight: bold; color: var(--primary-dark);"></span>
+    </div>
+
     <div id="loginPage" class="page active" style="text-align: center; display: flex; flex-direction: column; justify-content: center; height: 85vh;">
         <div class="card" style="padding: 2rem 1.5rem;">
             <h1 style="font-size: 1.8rem; margin-bottom: 0.5rem;">🔒 專屬記錄</h1>
@@ -230,17 +235,23 @@
   document.getElementById('historyDate').value = todayStr; 
   document.getElementById('historyDate').max = todayStr;   
 
+  // 🌟 自動管理畫面顯示與隱藏（保證登入窗格會完全消失）
   onAuthStateChanged(auth, (user) => {
       if (user) {
-          document.getElementById('loginPage').classList.remove('active');
+          // 登入成功：顯示頂部小字、導覽列，並切換到首頁
+          document.getElementById('userStatusBar').style.display = 'block';
+          document.getElementById('currentUserEmail').innerText = user.email;
+          document.getElementById('loginPage').classList.remove('active'); // 徹底隱藏登入頁面
           document.getElementById('bottomNav').style.display = 'flex'; 
           switchTab('home'); 
           startWaterListener(); 
       } else {
+          // 未登入/已登出：隱藏全部東西，只顯示登入畫面
+          document.getElementById('userStatusBar').style.display = 'none';
           document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-          document.getElementById('loginPage').classList.add('active');
+          document.getElementById('loginPage').classList.add('active'); // 只顯示登入頁面
           document.getElementById('bottomNav').style.display = 'none'; 
-          if (waterListenerUnsubscribe) waterListenerUnsubscribe(); 
+          if (waterListenerUnsubscribe) { waterListenerUnsubscribe(); waterListenerUnsubscribe = null; }
       }
   });
 
@@ -255,17 +266,25 @@
       
       signInWithEmailAndPassword(auth, email, pwd)
           .then(() => {
-              console.log("Login success");
+              // 成功時清空密碼，畫面切換會交給上面的 onAuthStateChanged 自動處理
+              document.getElementById('pwdInput').value = '';
+              btn.innerText = "立即登入"; 
           })
           .catch((error) => {
-              if(error.code !== 'auth/user-cancelled') {
-                  alert("⚠️ 登入失敗：帳號或密碼錯誤！");
-              }
+              alert("⚠️ 登入失敗：帳號或密碼錯誤！");
               btn.innerText = "立即登入";
           });
   };
 
-  window.logOut = () => { if(confirm("確定要登出嗎？")) signOut(auth); };
+  window.logOut = () => { 
+      if(confirm("確定要登出嗎？")) {
+          signOut(auth).then(() => {
+              // 登出後清空所有輸入框
+              document.getElementById('emailInput').value = '';
+              document.getElementById('pwdInput').value = '';
+          });
+      }
+  };
 
   window.switchTab = (tabName) => {
       if (!auth.currentUser) return; 
@@ -279,6 +298,8 @@
   };
 
   function startWaterListener() {
+      if (waterListenerUnsubscribe) { waterListenerUnsubscribe(); } 
+      
       const qToday = query(collection(db, "water_logs"), where("date", "==", todayStr));
       waterListenerUnsubscribe = onSnapshot(qToday, (snapshot) => {
           let total = 0; let html = ''; const docs = [];
