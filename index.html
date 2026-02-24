@@ -35,9 +35,9 @@
         }
         .current-ml { font-size: 2.2rem; font-weight: bold; color: var(--primary-dark); }
         .label { font-size: 0.85rem; color: var(--text-light); }
-        .btn-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 1rem; }
+        .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem; }
         .btn {
-            border: none; padding: 12px 10px; border-radius: 16px; font-size: 0.95rem; cursor: pointer;
+            border: none; padding: 12px 8px; border-radius: 16px; font-size: 0.95rem; cursor: pointer;
             transition: 0.2s; font-weight: bold; flex: 1 1 45%; box-sizing: border-box; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
         .btn:active { transform: scale(0.95); }
@@ -62,7 +62,6 @@
             display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: var(--white); justify-content: space-around;
             padding: 10px 0; box-shadow: 0 -2px 15px rgba(0,0,0,0.05); border-top-left-radius: 20px; border-top-right-radius: 20px; z-index: 1000;
         }
-        /* 導覽列縮小一點點字體，讓5個按鈕塞得下 */
         .nav-item { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--text-light); font-size: 0.7rem; cursor: pointer; padding: 5px 2px; flex: 1; }
         .nav-item.active { color: var(--primary-dark); font-weight: bold; }
         .nav-icon { font-size: 1.4rem; margin-bottom: 3px; }
@@ -148,8 +147,26 @@
     <div id="dietPage" class="page">
         <div class="card">
             <h1>🍱 飲食記錄</h1>
-            <p class="date-subtitle">記錄今天吃了什麼美食</p>
-            <textarea id="dietInput" placeholder="例如：排骨便當、無糖綠茶..." rows="3" style="width: 100%; margin-bottom: 15px; resize: none; font-size:1rem;"></textarea>
+            <p class="date-subtitle" style="margin-bottom: 1.5rem;">快速點擊按鈕，或手動輸入美食</p>
+            
+            <div style="text-align: left; margin-bottom: 8px; color: var(--text-dark); font-weight: bold; font-size: 0.95rem;">💧 飲</div>
+            <div class="btn-group" style="margin-bottom: 15px;">
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('☕ 咖啡')">咖啡</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍵 無糖茶')">無糖茶</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🧋 手搖飲')">手搖飲</button>
+            </div>
+
+            <div style="text-align: left; margin-bottom: 8px; color: var(--text-dark); font-weight: bold; font-size: 0.95rem;">🍽️ 食</div>
+            <div class="btn-group" style="margin-bottom: 20px;">
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('👩‍🍳 媽媽食物')">媽媽食物</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍝 義大利麵/燉飯')">義大利麵/燉飯</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍲 火鍋')">火鍋</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍢 夜市')">夜市</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍬 糖果')">糖果</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍪 餅乾')">餅乾</button>
+            </div>
+
+            <textarea id="dietInput" placeholder="點擊上方按鈕，或在此手動輸入..." rows="3" style="width: 100%; margin-bottom: 15px; resize: none; font-size:1rem;"></textarea>
             <button class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem;" onclick="saveDiet()">儲存飲食</button>
         </div>
         <div class="card history-section">
@@ -282,7 +299,7 @@
       
       if (tabName === 'calendar') { loadMonthlyChart(); window.fetchHistoryByDate(); } 
       else if (tabName === 'weight') { window.loadWeightData(); }
-      else if (tabName === 'diet') { window.loadDietData(); } // 載入飲食資料
+      else if (tabName === 'diet') { window.loadDietData(); }
   };
 
   function startWaterListener() {
@@ -335,7 +352,7 @@
       } else alert("今天本來就沒有記錄喔！");
   };
 
-  // --- 自訂按鈕 ---
+  // --- 自訂水杯按鈕 ---
   window.renderCustomButtons = () => {
       const container = document.getElementById('customBtnGroup');
       const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
@@ -484,7 +501,17 @@
       });
   };
 
-  // --- 飲食功能 (全新加入) ---
+  // --- 🌟 飲食功能 ---
+  window.appendDiet = (text) => {
+      const input = document.getElementById('dietInput');
+      // 如果原本有字，就加上「 + 」，如果沒有就直接填寫
+      if (input.value.trim() !== '') {
+          input.value += ' + ' + text;
+      } else {
+          input.value = text;
+      }
+  };
+
   window.saveDiet = async () => {
       const mealVal = document.getElementById('dietInput').value.trim();
       if(!mealVal) { alert("請輸入飲食內容！"); return; }
@@ -494,9 +521,11 @@
           document.getElementById('dietInput').value = ''; window.loadDietData(); btn.innerText = "儲存飲食";
       } catch (e) { alert("儲存失敗"); event.target.innerText = "儲存飲食"; }
   };
+  
   window.deleteDiet = async (id) => {
       if(confirm("確定要刪除這筆飲食記錄嗎？")) { await deleteDoc(doc(db, "diet_logs", id)); window.loadDietData(); }
   };
+  
   window.loadDietData = async () => {
       const querySnapshot = await getDocs(collection(db, "diet_logs")).catch(e => { return {forEach:()=>{}}; });
       const logs = []; querySnapshot.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
