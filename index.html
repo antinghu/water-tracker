@@ -70,7 +70,6 @@
         .nav-icon { font-size: 1.4rem; margin-bottom: 3px; }
         .login-input { width: 100%; margin-bottom: 15px; font-size: 1rem; }
         
-        /* 補登視窗的樣式 */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;
@@ -81,6 +80,27 @@
             background: var(--white); width: 85%; max-width: 350px; padding: 1.5rem;
             border-radius: 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
+
+        /* 🌟 新增：連續達標火焰特效 */
+        .streak-badge {
+            display: none;
+            background: linear-gradient(45deg, #ff6b8b, #ffb6c1);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(255, 107, 139, 0.3);
+            animation: bounce 1.5s infinite alternate;
+        }
+        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-4px); } }
+
+        /* 🌟 新增：飲食仙女與罪惡標籤特效 */
+        .tag-btn { border: 2px solid #e0e0e0; background: var(--white); color: var(--text-light); transition: 0.2s; }
+        .tag-btn.active-angel { border-color: #27ae60; background: #e8f8f5; color: #27ae60; }
+        .tag-btn.active-devil { border-color: #c0392b; background: #fdedec; color: #c0392b; }
+
     </style>
 </head>
 <body>
@@ -106,6 +126,8 @@
             <h1>沒事多喝水</h1>
             <div class="date-subtitle" id="homeDateDisplay">載入中...</div>
             
+            <div id="streakBadge" class="streak-badge">🔥 連續達標：<span id="streakCount">0</span> 天</div>
+
             <div id="homeProgress" style="width: 220px; height: 220px; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 0 auto 1.5rem; position: relative; background: conic-gradient(var(--primary) 0%, #fff5f7 0%); box-shadow: 0 4px 15px rgba(255, 141, 161, 0.2);">
                 <div style="position: absolute; inset: 12px; background: var(--white); border-radius: 50%;"></div>
                 <div style="position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; padding-top: 10px;">
@@ -173,8 +195,12 @@
     <div id="dietPage" class="page">
         <div class="card">
             <h1>🍱 飲食記錄</h1>
-            <p class="date-subtitle" style="margin-bottom: 1.5rem;">快速點擊按鈕，或手動輸入美食</p>
             
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button id="btnTagAngel" class="btn tag-btn" style="flex:1;" onclick="toggleDietTag('😇')">😇 仙女餐</button>
+                <button id="btnTagDevil" class="btn tag-btn" style="flex:1;" onclick="toggleDietTag('😈')">😈 罪惡餐</button>
+            </div>
+
             <div style="text-align: left; margin-bottom: 8px; color: var(--text-dark); font-weight: bold; font-size: 0.95rem;">💧 飲</div>
             <div class="btn-group" style="margin-bottom: 15px;">
                 <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('☕ 咖啡')">咖啡</button>
@@ -250,6 +276,12 @@
             
             <input type="number" id="retroWater" placeholder="輸入喝水量 (ml)" style="width: 100%; margin-bottom: 15px; display: none;">
             <input type="number" id="retroWeight" step="0.1" placeholder="輸入體重 (kg)" style="width: 100%; margin-bottom: 15px; display: none;">
+            
+            <select id="retroDietTag" style="width: 100%; margin-bottom: 10px; display: none; padding: 12px; border-radius: 12px; border: 2px solid var(--secondary); background: var(--bg-color); outline: none;">
+                <option value="">(不加標籤)</option>
+                <option value="😇">😇 仙女餐</option>
+                <option value="😈">😈 罪惡餐</option>
+            </select>
             <textarea id="retroDiet" placeholder="輸入補登的飲食內容..." rows="3" style="width: 100%; margin-bottom: 15px; resize: none; display: none;"></textarea>
             
             <div style="display: flex; gap: 10px;">
@@ -284,6 +316,9 @@
   let weightChartInstance = null; 
   let waterListenerUnsubscribe = null; 
   let hasAchievedGoalToday = false;
+  
+  // 飲食標籤變數
+  window.currentDietTag = '';
 
   function getTodayString() {
       const d = new Date();
@@ -291,6 +326,12 @@
       return new Date(d.getTime() - offset).toISOString().split('T')[0];
   }
   
+  // 取得任意日期物件的字串格式 (用來算連續天數)
+  function getDateStringFromDate(dObj) {
+      const offset = dObj.getTimezoneOffset() * 60000;
+      return new Date(dObj.getTime() - offset).toISOString().split('T')[0];
+  }
+
   const todayStr = getTodayString();
   document.getElementById('homeDateDisplay').innerText = new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'long' });
   document.getElementById('historyDate').value = todayStr; 
@@ -319,16 +360,9 @@
       const btn = document.getElementById('loginBtn');
       if(!email || !pwd) { alert("請輸入信箱與密碼！"); return; }
       btn.innerText = "驗證中...";
-      
       signInWithEmailAndPassword(auth, email, pwd)
-          .then(() => {
-              btn.innerText = "登入成功！";
-              document.getElementById('pwdInput').value = '';
-          })
-          .catch((error) => {
-              if(error.code !== 'auth/user-cancelled') { alert("⚠️ 登入失敗：帳號或密碼錯誤！"); }
-              btn.innerText = "立即登入";
-          });
+          .then(() => { btn.innerText = "登入成功！"; document.getElementById('pwdInput').value = ''; })
+          .catch((error) => { alert("⚠️ 登入失敗：帳號或密碼錯誤！"); btn.innerText = "立即登入"; });
   };
 
   window.logOut = () => { 
@@ -353,6 +387,48 @@
       else if (tabName === 'weight') { window.loadWeightData(); }
       else if (tabName === 'diet') { window.loadDietData(); }
   };
+
+  // 🌟 新增：計算連續達標火焰 (Streak)
+  async function updateStreak() {
+      const snap = await getDocs(collection(db, "water_logs"));
+      const dailyTotals = {};
+      snap.forEach(doc => {
+          const data = doc.data();
+          if(!dailyTotals[data.date]) dailyTotals[data.date] = 0;
+          dailyTotals[data.date] += data.amount;
+      });
+      
+      let streak = 0;
+      let curr = new Date();
+      
+      // 檢查今天
+      if (dailyTotals[todayStr] && dailyTotals[todayStr] >= 2000) {
+          streak++;
+          curr.setDate(curr.getDate() - 1);
+      } else {
+          // 如果今天還沒達標，從昨天開始檢查，避免斷掉
+          curr.setDate(curr.getDate() - 1);
+      }
+
+      // 往回推算每一天
+      while(true) {
+          let dStr = getDateStringFromDate(curr);
+          if (dailyTotals[dStr] && dailyTotals[dStr] >= 2000) {
+              streak++;
+              curr.setDate(curr.getDate() - 1);
+          } else {
+              break; // 一斷掉就停止
+          }
+      }
+
+      const badge = document.getElementById('streakBadge');
+      if(streak > 0) {
+          badge.style.display = 'inline-block';
+          document.getElementById('streakCount').innerText = streak;
+      } else {
+          badge.style.display = 'none';
+      }
+  }
 
   function startWaterListener() {
       if (waterListenerUnsubscribe) { waterListenerUnsubscribe(); } 
@@ -384,16 +460,12 @@
 
           if (total >= 2000 && !hasAchievedGoalToday) {
               hasAchievedGoalToday = true;
-              confetti({
-                  particleCount: 150,
-                  spread: 80,
-                  origin: { y: 0.6 },
-                  colors: ['#ff8da1', '#ffb6c1', '#ffffff', '#ff6b8b'],
-                  zIndex: 3000
-              });
+              confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#ff8da1', '#ffb6c1', '#ffffff', '#ff6b8b'], zIndex: 3000 });
           } else if (total < 2000) {
               hasAchievedGoalToday = false; 
           }
+          
+          updateStreak(); // 每次資料變動就更新火焰
 
       }, (error) => { console.error("Listener error:", error); });
   }
@@ -475,17 +547,33 @@
       document.getElementById('historyTotal').innerText = `${waterTotal} ml`;
       document.getElementById('historyLogList').innerHTML = waterHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無喝水記錄</div>';
 
-      const qWeight = query(collection(db, "weight_logs"), where("date", "==", selectedDate));
-      const snapWeight = await getDocs(qWeight).catch(e => { return {forEach:()=>{}}; });
-      let weightHtml = ''; const weightDocs = [];
-      snapWeight.forEach((docSnap) => { weightDocs.push(docSnap.data()); });
-      weightDocs.sort((a, b) => b.timestamp - a.timestamp).forEach((data) => {
-          let timeStr = '--:--';
-          if (data.timestamp) {
-              const dateObj = data.timestamp.toDate();
-              timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + dateObj.getMinutes().toString().padStart(2, '0');
+      // 🌟 月曆也加入體重對比小精靈
+      const qWeight = await getDocs(collection(db, "weight_logs")).catch(e => { return {forEach:()=>{}}; });
+      let allWeightDocs = [];
+      qWeight.forEach((docSnap) => { allWeightDocs.push(docSnap.data()); });
+      allWeightDocs.sort((a, b) => b.timestamp - a.timestamp); // 全部體重按時間倒序
+      
+      let weightHtml = '';
+      allWeightDocs.forEach((data, index) => {
+          if (data.date === selectedDate) { // 只顯示選中日期的
+              let timeStr = '--:--';
+              if (data.timestamp) {
+                  const dateObj = data.timestamp.toDate();
+                  timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + dateObj.getMinutes().toString().padStart(2, '0');
+              }
+              
+              // 計算與上一筆 (即更舊的 index + 1) 的差異
+              let diffHtml = '';
+              if (index + 1 < allWeightDocs.length) {
+                  let prevLog = allWeightDocs[index + 1];
+                  let diff = parseFloat((data.weight - prevLog.weight).toFixed(1));
+                  if (diff < 0) diffHtml = `<span style="color: #27ae60; font-size: 0.85em; margin-left: 8px;">(⬇️ 瘦了 ${Math.abs(diff)}kg 🎉)</span>`;
+                  else if (diff > 0) diffHtml = `<span style="color: #c0392b; font-size: 0.85em; margin-left: 8px;">(⬆️ 胖了 ${diff}kg 🙈)</span>`;
+                  else diffHtml = `<span style="color: var(--text-light); font-size: 0.85em; margin-left: 8px;">(持平)</span>`;
+              }
+              
+              weightHtml += `<div class="log-item"><div><span class="log-time">${timeStr}</span></div><span style="color: #9b59b6; font-weight:bold;">${data.weight} kg ${diffHtml}</span></div>`;
           }
-          weightHtml += `<div class="log-item"><div><span class="log-time">${timeStr}</span></div><span style="color: #9b59b6; font-weight:bold;">${data.weight} kg</span></div>`;
       });
       document.getElementById('historyWeightList').innerHTML = weightHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無體重記錄</div>';
 
@@ -499,9 +587,10 @@
               const dateObj = data.timestamp.toDate();
               timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + dateObj.getMinutes().toString().padStart(2, '0');
           }
+          let tagDisplay = data.tag ? `<span style="margin-right: 5px;">${data.tag}</span>` : '';
           dietHtml += `<div class="log-item" style="flex-wrap: wrap;">
                           <span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${timeStr}</span>
-                          <span style="color: var(--text-dark); font-weight:bold; white-space: pre-wrap; word-break: break-all;">${data.meal}</span>
+                          <span style="color: var(--text-dark); font-weight:bold; white-space: pre-wrap; word-break: break-all;">${tagDisplay}${data.meal}</span>
                        </div>`;
       });
       document.getElementById('historyDietList').innerHTML = dietHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無飲食記錄</div>';
@@ -529,6 +618,7 @@
       });
   }
 
+  // --- 體重功能與小精靈 ---
   window.saveWeight = async () => {
       const weightVal = document.getElementById('weightInput').value;
       if(!weightVal || weightVal <= 0) { alert("請輸入有效的體重數字！"); return; }
@@ -541,20 +631,41 @@
   window.deleteWeight = async (id) => {
       if(confirm("確定要刪除這筆體重記錄嗎？")) { await deleteDoc(doc(db, "weight_logs", id)); window.loadWeightData(); }
   };
+  
+  // 🌟 加入體重自動對比小精靈
   window.loadWeightData = async () => {
       const querySnapshot = await getDocs(collection(db, "weight_logs")).catch(e => { return {forEach:()=>{}}; });
       const logs = []; querySnapshot.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
-      logs.sort((a, b) => b.timestamp - a.timestamp); 
+      logs.sort((a, b) => b.timestamp - a.timestamp); // 最新的在最前面
+      
       let html = '';
-      logs.slice(0, 10).forEach(log => { 
+      const renderLogs = logs.slice(0, 10);
+      renderLogs.forEach((log, index) => { 
           let timeStr = '--/-- --:--';
           if (log.timestamp) {
               const d = log.timestamp.toDate();
               timeStr = `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
           }
-          html += `<div class="log-item"><span class="log-time">${timeStr}</span><span style="color: var(--primary-dark); font-weight:bold;">${log.weight} kg</span><button onclick="deleteWeight('${log.id}')" style="background:none; border:none; color:#ff9e9e; font-size:1.2rem; cursor:pointer;">✖</button></div>`;
+          
+          let diffHtml = '';
+          // 確保還有一筆更舊的資料可以比對
+          if (index + 1 < logs.length) {
+              let prevLog = logs[index + 1];
+              let diff = parseFloat((log.weight - prevLog.weight).toFixed(1));
+              if (diff < 0) {
+                  diffHtml = `<span style="color: #27ae60; font-size: 0.85em; margin-left: 8px;">(⬇️ 瘦了 ${Math.abs(diff)}kg 🎉)</span>`;
+              } else if (diff > 0) {
+                  diffHtml = `<span style="color: #c0392b; font-size: 0.85em; margin-left: 8px;">(⬆️ 胖了 ${diff}kg 🙈)</span>`;
+              } else {
+                  diffHtml = `<span style="color: var(--text-light); font-size: 0.85em; margin-left: 8px;">(持平)</span>`;
+              }
+          }
+
+          html += `<div class="log-item"><span class="log-time">${timeStr}</span><span style="color: var(--primary-dark); font-weight:bold;">${log.weight} kg ${diffHtml}</span><button onclick="deleteWeight('${log.id}')" style="background:none; border:none; color:#ff9e9e; font-size:1.2rem; cursor:pointer;">✖</button></div>`;
       });
       document.getElementById('weightLogList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">尚未有體重記錄喔。</div>';
+      
+      // 更新圖表
       const chartLogs = [...logs].reverse(); const dailyWeight = {};
       chartLogs.forEach(log => { dailyWeight[log.date] = log.weight; });
       const labels = Object.keys(dailyWeight).sort(); const dataPoints = labels.map(date => dailyWeight[date]);
@@ -567,23 +678,52 @@
       });
   };
 
+  // --- 🌟 飲食標籤功能 ---
+  window.toggleDietTag = (tag) => {
+      if (window.currentDietTag === tag) {
+          window.currentDietTag = ''; // 取消選取
+      } else {
+          window.currentDietTag = tag;
+      }
+      
+      const btnAngel = document.getElementById('btnTagAngel');
+      const btnDevil = document.getElementById('btnTagDevil');
+      
+      // 更新按鈕樣式
+      if (window.currentDietTag === '😇') {
+          btnAngel.classList.add('active-angel'); btnDevil.classList.remove('active-devil');
+      } else if (window.currentDietTag === '😈') {
+          btnDevil.classList.add('active-devil'); btnAngel.classList.remove('active-angel');
+      } else {
+          btnAngel.classList.remove('active-angel'); btnDevil.classList.remove('active-devil');
+      }
+  };
+
   window.appendDiet = (text) => {
       const input = document.getElementById('dietInput');
       if (input.value.trim() !== '') { input.value += ' + ' + text; } 
       else { input.value = text; }
   };
+  
   window.saveDiet = async () => {
       const mealVal = document.getElementById('dietInput').value.trim();
       if(!mealVal) { alert("請輸入飲食內容！"); return; }
       try {
           const btn = event.target; btn.innerText = "儲存中...";
-          await addDoc(collection(db, "diet_logs"), { meal: mealVal, date: getTodayString(), timestamp: Timestamp.now() });
-          document.getElementById('dietInput').value = ''; window.loadDietData(); btn.innerText = "儲存飲食";
+          // 🌟 存入資料庫時加上 tag
+          await addDoc(collection(db, "diet_logs"), { meal: mealVal, tag: window.currentDietTag, date: getTodayString(), timestamp: Timestamp.now() });
+          
+          document.getElementById('dietInput').value = ''; 
+          window.toggleDietTag(''); // 存完後清空標籤
+          window.loadDietData(); 
+          btn.innerText = "儲存飲食";
       } catch (e) { alert("儲存失敗"); event.target.innerText = "儲存飲食"; }
   };
+  
   window.deleteDiet = async (id) => {
       if(confirm("確定要刪除這筆飲食記錄嗎？")) { await deleteDoc(doc(db, "diet_logs", id)); window.loadDietData(); }
   };
+  
   window.loadDietData = async () => {
       const querySnapshot = await getDocs(collection(db, "diet_logs")).catch(e => { return {forEach:()=>{}}; });
       const logs = []; querySnapshot.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
@@ -595,9 +735,12 @@
               const d = log.timestamp.toDate();
               timeStr = `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
           }
+          // 顯示標籤
+          let tagDisplay = log.tag ? `<span style="margin-right: 5px;">${log.tag}</span>` : '';
+          
           html += `<div class="log-item" style="flex-wrap: wrap;">
                       <span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${timeStr}</span>
-                      <span style="color: var(--text-dark); font-weight:bold; flex: 1; white-space: pre-wrap; word-break: break-all;">${log.meal}</span>
+                      <span style="color: var(--text-dark); font-weight:bold; flex: 1; white-space: pre-wrap; word-break: break-all;">${tagDisplay}${log.meal}</span>
                       <button onclick="deleteDiet('${log.id}')" style="background:none; border:none; color:#ff9e9e; font-size:1.2rem; cursor:pointer; padding: 0 5px;">✖</button>
                    </div>`;
       });
@@ -614,6 +757,7 @@
       document.getElementById('retroWater').style.display = (type === 'water') ? 'block' : 'none';
       document.getElementById('retroWeight').style.display = (type === 'weight') ? 'block' : 'none';
       document.getElementById('retroDiet').style.display = (type === 'diet') ? 'block' : 'none';
+      document.getElementById('retroDietTag').style.display = (type === 'diet') ? 'block' : 'none'; // 補登也能選標籤
       
       const title = document.getElementById('retroModalTitle');
       if(type === 'water') title.innerText = '💧 補登喝水';
@@ -627,6 +771,7 @@
       document.getElementById('retroWater').value = '';
       document.getElementById('retroWeight').value = '';
       document.getElementById('retroDiet').value = '';
+      document.getElementById('retroDietTag').value = '';
   };
 
   window.saveRetroRecord = async () => {
@@ -653,8 +798,9 @@
           } 
           else if (window.retroType === 'diet') {
               const val = document.getElementById('retroDiet').value.trim();
+              const tagVal = document.getElementById('retroDietTag').value; // 抓取補登的標籤
               if(!val) throw new Error("請輸入飲食內容");
-              await addDoc(collection(db, "diet_logs"), { meal: val, date: rDate, timestamp: retroTimestamp });
+              await addDoc(collection(db, "diet_logs"), { meal: val, tag: tagVal, date: rDate, timestamp: retroTimestamp });
               window.loadDietData();
           }
           alert("✅ 補登成功！請至「月曆」分頁查詢。");
@@ -670,7 +816,6 @@
       
       try {
           let allData = [];
-          
           const waterSnap = await getDocs(collection(db, "water_logs"));
           waterSnap.forEach(d => { let obj=d.data(); obj.type="💧 喝水"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
           
@@ -687,8 +832,11 @@
               let dObj = data.timestamp ? data.timestamp.toDate() : new Date(data.date);
               let timeStr = dObj.getHours().toString().padStart(2, '0') + ':' + dObj.getMinutes().toString().padStart(2, '0');
               let val = data.amount ? `${data.amount} ml` : (data.weight ? `${data.weight} kg` : "");
+              
+              // 把 tag 組合進備註裡
+              let tagStr = data.tag ? `[${data.tag}] ` : "";
               let note = data.itemName || data.meal || "";
-              note = `"${note.replace(/"/g, '""').replace(/\n/g, ' ')}"`; 
+              note = `"${tagStr}${note.replace(/"/g, '""').replace(/\n/g, ' ')}"`; 
               
               csvContent += `${data.type},${data.date},${timeStr},${val},${note}\n`;
           });
