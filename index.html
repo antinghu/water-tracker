@@ -185,8 +185,13 @@
             <div style="text-align: left; margin-bottom: 8px; color: var(--text-dark); font-weight: bold; font-size: 0.95rem;">🍽️ 食</div>
             <div class="btn-group" style="margin-bottom: 20px;">
                 <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('👩‍🍳 媽媽食物')">媽媽食物</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍝 義大利麵/燉飯')">義大利麵/燉飯</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍝 義大利麵')">義大利麵</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍛 燉飯')">燉飯</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍜 拉麵')">拉麵</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍣 壽司')">壽司</button>
                 <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍲 火鍋')">火鍋</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍞 麵包')">麵包</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🥚 蛋')">蛋</button>
                 <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍢 夜市')">夜市</button>
                 <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍬 糖果')">糖果</button>
                 <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍪 餅乾')">餅乾</button>
@@ -278,7 +283,7 @@
   let waterChartInstance = null; 
   let weightChartInstance = null; 
   let waterListenerUnsubscribe = null; 
-  let hasAchievedGoalToday = false; // 追蹤今天是否已經撒過花
+  let hasAchievedGoalToday = false;
 
   function getTodayString() {
       const d = new Date();
@@ -349,7 +354,6 @@
       else if (tabName === 'diet') { window.loadDietData(); }
   };
 
-  // 🌟 更新：計算喝水進度、控制圓圈填滿與灑花動畫
   function startWaterListener() {
       if (waterListenerUnsubscribe) { waterListenerUnsubscribe(); } 
       const qToday = query(collection(db, "water_logs"), where("date", "==", todayStr));
@@ -374,14 +378,10 @@
           document.getElementById('recordTotalAmount').innerText = total;
           document.getElementById('logList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">今天還沒喝水喔，趕快喝一杯吧！</div>';
 
-          // 計算進度百分比 (最大100%)
           let percentage = (total / 2000) * 100;
           if (percentage > 100) percentage = 100;
-          
-          // 更新圓圈背景顏色
           document.getElementById('homeProgress').style.background = `conic-gradient(var(--primary) ${percentage}%, #fff5f7 0%)`;
 
-          // 達標 2000ml 觸發灑花 (每天只觸發一次)
           if (total >= 2000 && !hasAchievedGoalToday) {
               hasAchievedGoalToday = true;
               confetti({
@@ -392,7 +392,6 @@
                   zIndex: 3000
               });
           } else if (total < 2000) {
-              // 如果不小心刪除記錄掉到 2000 以下，重置狀態，下次突破還能再灑花
               hasAchievedGoalToday = false; 
           }
 
@@ -404,7 +403,7 @@
       catch (e) { console.error(e); }
   };
   window.customInput = () => {
-      let input = prompt("請輸入喝水量 (ml)：", "");
+      let input = prompt("請輸入喝水量 (ml)：", "300");
       if (input !== null && input.trim() !== "") {
           let amount = parseInt(input, 10);
           if (!isNaN(amount) && amount > 0) window.addWater(amount, '手動輸入');
@@ -664,7 +663,6 @@
       btn.innerText = "確認補登";
   };
 
-  // 🌟 新增：一鍵匯出 Excel (CSV) 功能
   window.exportToCSV = async (event) => {
       const btn = event.target;
       const originalText = btn.innerText;
@@ -673,7 +671,6 @@
       try {
           let allData = [];
           
-          // 抓取所有資料
           const waterSnap = await getDocs(collection(db, "water_logs"));
           waterSnap.forEach(d => { let obj=d.data(); obj.type="💧 喝水"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
           
@@ -683,22 +680,19 @@
           const dietSnap = await getDocs(collection(db, "diet_logs"));
           dietSnap.forEach(d => { let obj=d.data(); obj.type="🍱 飲食"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
           
-          // 依照時間最新到最舊排序
           allData.sort((a,b) => b.ts - a.ts); 
           
-          // 建立 CSV 格式 (加上 \uFEFF 讓 Excel 支援中文)
           let csvContent = "\uFEFF分類,日期,時間,數值,備註\n";
           allData.forEach(data => {
               let dObj = data.timestamp ? data.timestamp.toDate() : new Date(data.date);
               let timeStr = dObj.getHours().toString().padStart(2, '0') + ':' + dObj.getMinutes().toString().padStart(2, '0');
               let val = data.amount ? `${data.amount} ml` : (data.weight ? `${data.weight} kg` : "");
               let note = data.itemName || data.meal || "";
-              note = `"${note.replace(/"/g, '""').replace(/\n/g, ' ')}"`; // 處理換行和引號
+              note = `"${note.replace(/"/g, '""').replace(/\n/g, ' ')}"`; 
               
               csvContent += `${data.type},${data.date},${timeStr},${val},${note}\n`;
           });
           
-          // 觸發下載
           const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
           const link = document.createElement("a");
           const url = URL.createObjectURL(blob);
