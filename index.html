@@ -107,8 +107,11 @@
             <h1 style="font-size: 1.8rem; margin-bottom: 0.5rem;">🔒 專屬記錄</h1>
             <p class="date-subtitle" style="margin-bottom: 1.5rem;">請輸入您的專屬帳號密碼</p>
             <input type="email" id="emailInput" class="login-input" placeholder="請輸入信箱">
-            <input type="password" id="pwdInput" class="login-input" placeholder="請輸入密碼">
+            <input type="password" id="pwdInput" class="login-input" placeholder="請輸入密碼(至少6碼)">
+            
             <button id="loginBtn" class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem; margin-top: 10px;" onclick="signIn()">立即登入</button>
+            
+            <button id="registerBtn" class="btn btn-custom" style="width: 100%; padding: 15px; font-size: 1.1rem; margin-top: 15px;" onclick="signUp()">📝 註冊新帳號</button>
         </div>
     </div>
 
@@ -291,9 +294,10 @@
 </div>
 
 <script type="module">
+  // 🌟 加入了 createUserWithEmailAndPassword 的引用
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDB3WJa1pmBcjxk0EKQM6is4z2n5oCY0W4",
@@ -355,8 +359,38 @@
       if(!email || !pwd) { alert("請輸入信箱與密碼！"); return; }
       btn.innerText = "驗證中...";
       signInWithEmailAndPassword(auth, email, pwd)
-          .then(() => { btn.innerText = "登入成功！"; document.getElementById('pwdInput').value = ''; })
+          .then(() => { btn.innerText = "立即登入"; document.getElementById('pwdInput').value = ''; })
           .catch((error) => { alert("⚠️ 登入失敗：帳號或密碼錯誤！"); btn.innerText = "立即登入"; });
+  };
+
+  // 🌟 全新加入的：註冊功能
+  window.signUp = () => {
+      const email = document.getElementById('emailInput').value.trim();
+      const pwd = document.getElementById('pwdInput').value;
+      const btn = document.getElementById('registerBtn');
+
+      if(!email || !pwd) { alert("請先在上方輸入要註冊的信箱與密碼！"); return; }
+      if(pwd.length < 6) { alert("⚠️ Firebase 規定密碼至少需要 6 個字元喔！"); return; }
+
+      btn.innerText = "註冊中...";
+
+      createUserWithEmailAndPassword(auth, email, pwd)
+          .then(() => {
+              alert("🎉 註冊成功！系統已自動為您登入。\n(請注意：若這是新信箱，可能需要去 Firebase 規則中加入您的信箱才能看到資料喔！)");
+              btn.innerText = "📝 註冊新帳號";
+              document.getElementById('pwdInput').value = '';
+          })
+          .catch((error) => {
+              console.error(error);
+              if(error.code === 'auth/email-already-in-use') {
+                  alert("⚠️ 這個信箱已經註冊過囉！請直接點擊上方「立即登入」。");
+              } else if (error.code === 'auth/invalid-email') {
+                  alert("⚠️ 信箱格式不正確！");
+              } else {
+                  alert("⚠️ 註冊失敗：" + error.message);
+              }
+              btn.innerText = "📝 註冊新帳號";
+          });
   };
 
   window.logOut = () => { 
@@ -468,7 +502,7 @@
       let input = prompt("請輸入喝水量 (ml)：", "300");
       if (input !== null && input.trim() !== "") {
           let amount = parseInt(input, 10);
-          if (!isNaN(amount) && amount > 0) window.addWater(amount, '手掌握');
+          if (!isNaN(amount) && amount > 0) window.addWater(amount, '手動輸入');
           else alert("請輸入大於 0 的有效數字！");
       }
   };
@@ -486,13 +520,11 @@
       } else alert("今天本來就沒有記錄喔！");
   };
 
-  // 🌟 修正自訂按鈕的建立與渲染
   window.renderCustomButtons = () => {
       const container = document.getElementById('customBtnGroup');
       const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
       let html = '';
       buttons.forEach((btn) => {
-          // 移除舊的 oncontextmenu，現在透過新的「刪除按鈕」來管理
           html += `<button class="btn btn-add-special" style="background-color: #ffe4e1;" onclick="addWater(${btn.amount}, '${btn.name}')">🌟 ${btn.name} ${btn.amount} ml</button>`;
       });
       container.innerHTML = html;
@@ -511,7 +543,6 @@
       window.renderCustomButtons();
   };
 
-  // 🌟 全新加入的：管理與刪除自訂按鈕功能
   window.manageCustomButtons = () => {
       const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
       if (buttons.length === 0) {
@@ -793,6 +824,7 @@
               const val = parseInt(document.getElementById('retroWater').value, 10);
               if(isNaN(val) || val <= 0) throw new Error("請輸入有效水量");
               await addDoc(collection(db, "water_logs"), { amount: val, itemName: '📅 補登記錄', date: rDate, timestamp: retroTimestamp });
+              updateStreak();
           } 
           else if (window.retroType === 'weight') {
               const val = parseFloat(document.getElementById('retroWeight').value);
