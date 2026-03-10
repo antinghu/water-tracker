@@ -136,6 +136,8 @@
                 <button onclick="exportToCSV(event)" style="background:none; border:none; color: #27ae60; cursor:pointer; font-size:0.85rem; text-decoration:underline; font-weight:bold;">📥 匯出 Excel</button>
                 <button onclick="logOut()" style="background:none; border:none; color:var(--text-light); cursor:pointer; font-size:0.85rem; text-decoration:underline;">登出帳號</button>
             </div>
+
+            <button id="migrateBtn" onclick="migrateOldData()" style="margin-top:20px; background:#ff9e9e; border:none; color:white; padding: 8px 15px; border-radius:12px; cursor:pointer; font-size:0.8rem; font-weight:bold;">⚠️ 升級舊資料綁定帳號</button>
         </div>
     </div>
 
@@ -148,7 +150,6 @@
                 <button class="btn btn-add-special" onclick="addWater(473, 'Fellow')">Fellow 473 ml</button>
                 <button class="btn btn-add-special" onclick="addWater(700, '大象杯')">大象杯 700 ml</button>
             </div>
-            
             <div class="btn-group" id="customBtnGroup"></div>
             
             <div class="btn-group">
@@ -293,8 +294,9 @@
 </div>
 
 <script type="module">
+  // 🌟 引入 updateDoc 功能，用於舊資料升級
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   const firebaseConfig = {
@@ -317,7 +319,6 @@
   let hasAchievedGoalToday = false;
   window.currentDietTag = '';
   
-  // 🌟 加入星期縮寫對照表
   const dayNames = ['Sun.', 'Mon.', 'Tue.', 'Wed.', 'Thu.', 'Fri.', 'Sat.'];
 
   function getTodayString() {
@@ -376,19 +377,15 @@
 
       createUserWithEmailAndPassword(auth, email, pwd)
           .then(() => {
-              alert("🎉 註冊成功！系統已自動為您登入。\n(請注意：若這是新信箱，可能需要去 Firebase 規則中加入您的信箱才能看到資料喔！)");
+              alert("🎉 註冊成功！系統已自動為您登入。");
               btn.innerText = "📝 註冊新帳號";
               document.getElementById('pwdInput').value = '';
           })
           .catch((error) => {
               console.error(error);
-              if(error.code === 'auth/email-already-in-use') {
-                  alert("⚠️ 這個信箱已經註冊過囉！請直接點擊上方「立即登入」。");
-              } else if (error.code === 'auth/invalid-email') {
-                  alert("⚠️ 信箱格式不正確！");
-              } else {
-                  alert("⚠️ 註冊失敗：" + error.message);
-              }
+              if(error.code === 'auth/email-already-in-use') { alert("⚠️ 這個信箱已經註冊過囉！請直接點擊上方「立即登入」。"); } 
+              else if (error.code === 'auth/invalid-email') { alert("⚠️ 信箱格式不正確！"); } 
+              else { alert("⚠️ 註冊失敗：" + error.message); }
               btn.innerText = "📝 註冊新帳號";
           });
   };
@@ -416,8 +413,37 @@
       else if (tabName === 'diet') { window.loadDietData(); }
   };
 
+  // 🌟 一鍵升級舊資料的功能
+  window.migrateOldData = async () => {
+      if(!confirm("這個按鈕會把「以前沒有綁定帳號的舊資料」全部綁定到你現在登入的帳號喔！\n確定要執行嗎？")) return;
+      
+      const btn = document.getElementById('migrateBtn');
+      btn.innerText = "資料升級中請稍後...";
+      
+      try {
+          const collections = ["water_logs", "weight_logs", "diet_logs"];
+          let count = 0;
+          for (let c of collections) {
+              const snap = await getDocs(collection(db, c));
+              for (let docSnap of snap.docs) {
+                  // 如果這筆資料還沒有 uid 標籤，就幫它加上去
+                  if (!docSnap.data().uid) {
+                      await updateDoc(doc(db, c, docSnap.id), { uid: auth.currentUser.uid });
+                      count++;
+                  }
+              }
+          }
+          alert(`✅ 升級完成！共幫你綁定了 ${count} 筆舊資料。\n請重新整理網頁，資料就會出現囉！`);
+          btn.style.display = 'none'; // 隱藏按鈕
+      } catch (e) {
+          alert("升級發生錯誤，請確認你是否有資料庫權限：" + e.message);
+          btn.innerText = "⚠️ 升級失敗，請重試";
+      }
+  };
+
   async function updateStreak() {
-      const snap = await getDocs(collection(db, "water_logs"));
+      // 🌟 讀取時加入 where 條件，只抓自己的資料
+      const snap = await getDocs(query(collection(db, "water_logs"), where("uid", "==", auth.currentUser.uid)));
       const dailyTotals = {};
       snap.forEach(doc => {
           const data = doc.data();
@@ -456,11 +482,17 @@
 
   function startWaterListener() {
       if (waterListenerUnsubscribe) { waterListenerUnsubscribe(); } 
-      const qToday = query(collection(db, "water_logs"), where("date", "==", todayStr));
+      // 🌟 讀取時加入 where 條件，只抓自己的資料
+      const qToday = query(collection(db, "water_logs"), where("uid", "==", auth.currentUser.uid));
       
       waterListenerUnsubscribe = onSnapshot(qToday, (snapshot) => {
           let total = 0; let html = ''; const docs = [];
-          snapshot.forEach((docSnap) => { docs.push({ id: docSnap.id, ...docSnap.data() }); });
+          snapshot.forEach((docSnap) => { 
+              // 因為沒有設定複合索引，我們在程式碼裡過濾今天的日期
+              if (docSnap.data().date === todayStr) {
+                  docs.push({ id: docSnap.id, ...docSnap.data() }); 
+              }
+          });
           docs.sort((a, b) => b.timestamp - a.timestamp); window.currentDocs = docs;
           
           docs.forEach((data) => {
@@ -495,7 +527,8 @@
   }
 
   window.addWater = async (amount, itemName = '') => {
-      try { await addDoc(collection(db, "water_logs"), { amount, itemName, date: getTodayString(), timestamp: Timestamp.now() }); } 
+      // 🌟 存檔時綁定自己的身分證 uid
+      try { await addDoc(collection(db, "water_logs"), { amount, itemName, date: getTodayString(), timestamp: Timestamp.now(), uid: auth.currentUser.uid }); } 
       catch (e) { console.error(e); }
   };
   window.customInput = () => {
@@ -576,16 +609,20 @@
       const selectedDate = document.getElementById('historyDate').value;
       if (!selectedDate) return;
 
-      const qWater = query(collection(db, "water_logs"), where("date", "==", selectedDate));
+      // 🌟 讀取時加入 where 條件
+      const qWater = query(collection(db, "water_logs"), where("uid", "==", auth.currentUser.uid));
       const snapWater = await getDocs(qWater).catch(e => { return {forEach:()=>{}}; });
       let waterTotal = 0; let waterHtml = ''; const waterDocs = [];
-      snapWater.forEach((docSnap) => { waterDocs.push(docSnap.data()); });
+      snapWater.forEach((docSnap) => { 
+          if(docSnap.data().date === selectedDate) waterDocs.push(docSnap.data()); 
+      });
       waterDocs.sort((a, b) => b.timestamp - a.timestamp).forEach((data) => {
           waterTotal += data.amount;
           let timeStr = '--:--';
           if (data.timestamp) {
               const dateObj = data.timestamp.toDate();
-              timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + dateObj.getMinutes().toString().padStart(2, '0');
+              // 🌟 月曆加入星期縮寫
+              timeStr = `${dayNames[dateObj.getDay()]} ${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
           }
           let itemName = data.itemName ? `<span class="log-name">${data.itemName}</span>` : '';
           waterHtml += `<div class="log-item"><div><span class="log-time">${timeStr}</span> ${itemName}</div><span style="color: var(--primary-dark); font-weight:bold;">${data.amount} ml</span></div>`;
@@ -593,9 +630,11 @@
       document.getElementById('historyTotal').innerText = `${waterTotal} ml`;
       document.getElementById('historyLogList').innerHTML = waterHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無喝水記錄</div>';
 
-      const qWeight = await getDocs(collection(db, "weight_logs")).catch(e => { return {forEach:()=>{}}; });
+      // 🌟 讀取時加入 where 條件
+      const qWeight = query(collection(db, "weight_logs"), where("uid", "==", auth.currentUser.uid));
+      const snapWeight = await getDocs(qWeight).catch(e => { return {forEach:()=>{}}; });
       let allWeightDocs = [];
-      qWeight.forEach((docSnap) => { allWeightDocs.push(docSnap.data()); });
+      snapWeight.forEach((docSnap) => { allWeightDocs.push(docSnap.data()); });
       allWeightDocs.sort((a, b) => b.timestamp - a.timestamp); 
       
       let weightHtml = '';
@@ -604,16 +643,17 @@
               let timeStr = '--:--';
               if (data.timestamp) {
                   const dateObj = data.timestamp.toDate();
-                  timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + dateObj.getMinutes().toString().padStart(2, '0');
+                  // 🌟 月曆加入星期縮寫
+                  timeStr = `${dayNames[dateObj.getDay()]} ${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
               }
               
               let diffHtml = '';
               if (index + 1 < allWeightDocs.length) {
                   let prevLog = allWeightDocs[index + 1];
                   let diff = parseFloat((data.weight - prevLog.weight).toFixed(1));
-                  if (diff < 0) diffHtml = `<span style="color: #27ae60; font-size: 0.85em; margin-left: 8px;">(⬇️ 瘦了 ${Math.abs(diff)}kg 🎉)</span>`;
-                  else if (diff > 0) diffHtml = `<span style="color: #c0392b; font-size: 0.85em; margin-left: 8px;">(⬆️ 胖了 ${diff}kg 🙈)</span>`;
-                  else diffHtml = `<span style="color: var(--text-light); font-size: 0.85em; margin-left: 8px;">(持平)</span>`;
+                  if (diff < 0) diffHtml = `<span style="color: #27ae60; font-size: 0.7em; white-space: nowrap; margin-left: 5px;">(⬇️ 瘦了 ${Math.abs(diff)}kg 🎉)</span>`;
+                  else if (diff > 0) diffHtml = `<span style="color: #c0392b; font-size: 0.7em; white-space: nowrap; margin-left: 5px;">(⬆️ 胖了 ${diff}kg 🙈)</span>`;
+                  else diffHtml = `<span style="color: var(--text-light); font-size: 0.7em; white-space: nowrap; margin-left: 5px;">(持平)</span>`;
               }
               
               weightHtml += `<div class="log-item"><div><span class="log-time">${timeStr}</span></div><span style="color: #9b59b6; font-weight:bold;">${data.weight} kg ${diffHtml}</span></div>`;
@@ -621,15 +661,19 @@
       });
       document.getElementById('historyWeightList').innerHTML = weightHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無體重記錄</div>';
 
-      const qDiet = query(collection(db, "diet_logs"), where("date", "==", selectedDate));
+      // 🌟 讀取時加入 where 條件
+      const qDiet = query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid));
       const snapDiet = await getDocs(qDiet).catch(e => { return {forEach:()=>{}}; });
       let dietHtml = ''; const dietDocs = [];
-      snapDiet.forEach((docSnap) => { dietDocs.push(docSnap.data()); });
+      snapDiet.forEach((docSnap) => { 
+          if(docSnap.data().date === selectedDate) dietDocs.push(docSnap.data()); 
+      });
       dietDocs.sort((a, b) => b.timestamp - a.timestamp).forEach((data) => {
           let timeStr = '--:--';
           if (data.timestamp) {
               const dateObj = data.timestamp.toDate();
-              timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + dateObj.getMinutes().toString().padStart(2, '0');
+              // 🌟 月曆加入星期縮寫
+              timeStr = `${dayNames[dateObj.getDay()]} ${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
           }
           let tagDisplay = data.tag ? `<span style="margin-right: 5px;">${data.tag}</span>` : '';
           dietHtml += `<div class="log-item" style="flex-wrap: wrap;">
@@ -643,13 +687,16 @@
   async function loadMonthlyChart() {
       const date = new Date(); const year = date.getFullYear(); let month = date.getMonth() + 1; month = month < 10 ? '0' + month : month;
       const startDate = `${year}-${month}-01`; const endDate = `${year}-${month}-31`;
-      const qMonth = query(collection(db, "water_logs"), where("date", ">=", startDate), where("date", "<=", endDate));
+      // 🌟 讀取時加入 where 條件
+      const qMonth = query(collection(db, "water_logs"), where("uid", "==", auth.currentUser.uid));
       const querySnapshot = await getDocs(qMonth).catch(e => { return {forEach:()=>{}}; });
       const dailyTotals = {};
       querySnapshot.forEach((docSnap) => {
           const data = docSnap.data();
-          if (!dailyTotals[data.date]) dailyTotals[data.date] = 0;
-          dailyTotals[data.date] += data.amount;
+          if (data.date >= startDate && data.date <= endDate) {
+              if (!dailyTotals[data.date]) dailyTotals[data.date] = 0;
+              dailyTotals[data.date] += data.amount;
+          }
       });
       const sortedDates = Object.keys(dailyTotals).sort();
       const labels = sortedDates.map(d => { const parts = d.split('-'); return `${parts[1]}/${parts[2]}`; });
@@ -662,13 +709,13 @@
       });
   }
 
-  // 🌟 修改體重的顯示，加入星期縮寫
   window.saveWeight = async () => {
       const weightVal = document.getElementById('weightInput').value;
       if(!weightVal || weightVal <= 0) { alert("請輸入有效的體重數字！"); return; }
       try {
           const btn = event.target; btn.innerText = "儲存中...";
-          await addDoc(collection(db, "weight_logs"), { weight: parseFloat(weightVal), date: getTodayString(), timestamp: Timestamp.now() });
+          // 🌟 存檔時綁定 uid
+          await addDoc(collection(db, "weight_logs"), { weight: parseFloat(weightVal), date: getTodayString(), timestamp: Timestamp.now(), uid: auth.currentUser.uid });
           document.getElementById('weightInput').value = ''; window.loadWeightData(); btn.innerText = "儲存體重";
       } catch (e) { alert("儲存失敗"); event.target.innerText = "儲存體重"; }
   };
@@ -676,7 +723,8 @@
       if(confirm("確定要刪除這筆體重記錄嗎？")) { await deleteDoc(doc(db, "weight_logs", id)); window.loadWeightData(); }
   };
   window.loadWeightData = async () => {
-      const querySnapshot = await getDocs(collection(db, "weight_logs")).catch(e => { return {forEach:()=>{}}; });
+      // 🌟 讀取時加入 where 條件
+      const querySnapshot = await getDocs(query(collection(db, "weight_logs"), where("uid", "==", auth.currentUser.uid))).catch(e => { return {forEach:()=>{}}; });
       const logs = []; querySnapshot.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
       logs.sort((a, b) => b.timestamp - a.timestamp); 
       
@@ -686,7 +734,6 @@
           let timeStr = '--/-- --:--';
           if (log.timestamp) {
               const d = log.timestamp.toDate();
-              // 🌟 這裡加入了星期縮寫
               timeStr = `${d.getMonth()+1}/${d.getDate()} ${dayNames[d.getDay()]} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
           }
           
@@ -694,12 +741,13 @@
           if (index + 1 < logs.length) {
               let prevLog = logs[index + 1];
               let diff = parseFloat((log.weight - prevLog.weight).toFixed(1));
+              // 🌟 修正體重排版，強制不換行 white-space: nowrap
               if (diff < 0) {
-                  diffHtml = `<span style="color: #27ae60; font-size: 0.85em; margin-left: 8px;">(⬇️ 瘦了 ${Math.abs(diff)}kg 🎉)</span>`;
+                  diffHtml = `<span style="color: #27ae60; font-size: 0.7em; white-space: nowrap; margin-left: 5px;">(⬇️ 瘦了 ${Math.abs(diff)}kg 🎉)</span>`;
               } else if (diff > 0) {
-                  diffHtml = `<span style="color: #c0392b; font-size: 0.85em; margin-left: 8px;">(⬆️ 胖了 ${diff}kg 🙈)</span>`;
+                  diffHtml = `<span style="color: #c0392b; font-size: 0.7em; white-space: nowrap; margin-left: 5px;">(⬆️ 胖了 ${diff}kg 🙈)</span>`;
               } else {
-                  diffHtml = `<span style="color: var(--text-light); font-size: 0.85em; margin-left: 8px;">(持平)</span>`;
+                  diffHtml = `<span style="color: var(--text-light); font-size: 0.7em; white-space: nowrap; margin-left: 5px;">(持平)</span>`;
               }
           }
 
@@ -749,7 +797,8 @@
       if(!mealVal) { alert("請輸入飲食內容！"); return; }
       try {
           const btn = event.target; btn.innerText = "儲存中...";
-          await addDoc(collection(db, "diet_logs"), { meal: mealVal, tag: window.currentDietTag, date: getTodayString(), timestamp: Timestamp.now() });
+          // 🌟 存檔時綁定 uid
+          await addDoc(collection(db, "diet_logs"), { meal: mealVal, tag: window.currentDietTag, date: getTodayString(), timestamp: Timestamp.now(), uid: auth.currentUser.uid });
           
           document.getElementById('dietInput').value = ''; 
           window.toggleDietTag(''); 
@@ -762,9 +811,9 @@
       if(confirm("確定要刪除這筆飲食記錄嗎？")) { await deleteDoc(doc(db, "diet_logs", id)); window.loadDietData(); }
   };
   
-  // 🌟 修改飲食的顯示，加入星期縮寫
   window.loadDietData = async () => {
-      const querySnapshot = await getDocs(collection(db, "diet_logs")).catch(e => { return {forEach:()=>{}}; });
+      // 🌟 讀取時加入 where 條件
+      const querySnapshot = await getDocs(query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid))).catch(e => { return {forEach:()=>{}}; });
       const logs = []; querySnapshot.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
       logs.sort((a, b) => b.timestamp - a.timestamp); 
       let html = '';
@@ -772,7 +821,6 @@
           let timeStr = '--/-- --:--';
           if (log.timestamp) {
               const d = log.timestamp.toDate();
-              // 🌟 這裡加入了星期縮寫
               timeStr = `${d.getMonth()+1}/${d.getDate()} ${dayNames[d.getDay()]} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
           }
           let tagDisplay = log.tag ? `<span style="margin-right: 5px;">${log.tag}</span>` : '';
@@ -827,20 +875,21 @@
           if(window.retroType === 'water') {
               const val = parseInt(document.getElementById('retroWater').value, 10);
               if(isNaN(val) || val <= 0) throw new Error("請輸入有效水量");
-              await addDoc(collection(db, "water_logs"), { amount: val, itemName: '📅 補登記錄', date: rDate, timestamp: retroTimestamp });
+              // 🌟 存檔時綁定 uid
+              await addDoc(collection(db, "water_logs"), { amount: val, itemName: '📅 補登記錄', date: rDate, timestamp: retroTimestamp, uid: auth.currentUser.uid });
               updateStreak();
           } 
           else if (window.retroType === 'weight') {
               const val = parseFloat(document.getElementById('retroWeight').value);
               if(isNaN(val) || val <= 0) throw new Error("請輸入有效體重");
-              await addDoc(collection(db, "weight_logs"), { weight: val, date: rDate, timestamp: retroTimestamp });
+              await addDoc(collection(db, "weight_logs"), { weight: val, date: rDate, timestamp: retroTimestamp, uid: auth.currentUser.uid });
               window.loadWeightData();
           } 
           else if (window.retroType === 'diet') {
               const val = document.getElementById('retroDiet').value.trim();
               const tagVal = document.getElementById('retroDietTag').value; 
               if(!val) throw new Error("請輸入飲食內容");
-              await addDoc(collection(db, "diet_logs"), { meal: val, tag: tagVal, date: rDate, timestamp: retroTimestamp });
+              await addDoc(collection(db, "diet_logs"), { meal: val, tag: tagVal, date: rDate, timestamp: retroTimestamp, uid: auth.currentUser.uid });
               window.loadDietData();
           }
           alert("✅ 補登成功！請至「月曆」分頁查詢。");
@@ -856,13 +905,14 @@
       
       try {
           let allData = [];
-          const waterSnap = await getDocs(collection(db, "water_logs"));
+          // 🌟 匯出時也只抓自己的資料
+          const waterSnap = await getDocs(query(collection(db, "water_logs"), where("uid", "==", auth.currentUser.uid)));
           waterSnap.forEach(d => { let obj=d.data(); obj.type="💧 喝水"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
           
-          const weightSnap = await getDocs(collection(db, "weight_logs"));
+          const weightSnap = await getDocs(query(collection(db, "weight_logs"), where("uid", "==", auth.currentUser.uid)));
           weightSnap.forEach(d => { let obj=d.data(); obj.type="⚖️ 體重"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
           
-          const dietSnap = await getDocs(collection(db, "diet_logs"));
+          const dietSnap = await getDocs(query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid)));
           dietSnap.forEach(d => { let obj=d.data(); obj.type="🍱 飲食"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
           
           allData.sort((a,b) => b.ts - a.ts); 
