@@ -89,7 +89,7 @@
         }
         @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-4px); } }
 
-        .tag-btn { border: 2px solid #e0e0e0; background: var(--white); color: var(--text-light); transition: 0.2s; }
+        .tag-btn { border: 2px solid #e0e0e0; background: var(--white); color: var(--text-light); transition: 0.2s; padding: 10px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; text-align: center;}
         .tag-btn.active-angel { border-color: #27ae60; background: #e8f8f5; color: #27ae60; }
         .tag-btn.active-devil { border-color: #c0392b; background: #fdedec; color: #c0392b; }
     </style>
@@ -196,8 +196,8 @@
             <h1>🍱 飲食記錄</h1>
             
             <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <button id="btnTagAngel" class="btn tag-btn" style="flex:1;" onclick="toggleDietTag('😇')">😇 仙女餐</button>
-                <button id="btnTagDevil" class="btn tag-btn" style="flex:1;" onclick="toggleDietTag('😈')">😈 罪惡餐</button>
+                <button id="btnTagAngel" class="btn tag-btn" style="flex:1;" onclick="toggleDietTag('😇')">😇</button>
+                <button id="btnTagDevil" class="btn tag-btn" style="flex:1;" onclick="toggleDietTag('😈')">😈</button>
             </div>
 
             <div style="text-align: left; margin-bottom: 8px; color: var(--text-dark); font-weight: bold; font-size: 0.95rem;">💧 飲</div>
@@ -277,8 +277,8 @@
             
             <select id="retroDietTag" style="width: 100%; margin-bottom: 10px; display: none; padding: 12px; border-radius: 12px; border: 2px solid var(--secondary); background: var(--bg-color); outline: none;">
                 <option value="">(不加標籤)</option>
-                <option value="😇">😇 仙女餐</option>
-                <option value="😈">😈 罪惡餐</option>
+                <option value="😇">😇</option>
+                <option value="😈">😈</option>
             </select>
             <textarea id="retroDiet" placeholder="輸入補登的飲食內容..." rows="3" style="width: 100%; margin-bottom: 15px; resize: none; display: none;"></textarea>
             
@@ -292,9 +292,8 @@
 </div>
 
 <script type="module">
-  // 移除已經不需要的 updateDoc 功能
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   const firebaseConfig = {
