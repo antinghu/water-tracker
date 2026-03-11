@@ -19,7 +19,7 @@
         }
         body {
             font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); margin: 0;
-            color: var(--text-dark); padding-bottom: 70px; display: flex; justify-content: center;
+            color: var(--text-dark); padding-bottom: 75px; display: flex; justify-content: center;
         }
         .app-container { width: 100%; max-width: 450px; min-height: 100vh; background: transparent; }
         .page { display: none; padding: 1.5rem; animation: fadeIn 0.3s ease-in-out; box-sizing: border-box; }
@@ -56,18 +56,21 @@
         .log-name { font-size: 0.8em; color: var(--primary); margin-left: 5px; background: var(--bg-color); padding: 2px 6px; border-radius: 8px; }
         .chart-container { position: relative; height: 200px; width: 100%; margin-bottom: 1.5rem; }
         .date-picker-wrapper { text-align: center; margin-bottom: 1rem; }
-        input[type="date"], input[type="number"], input[type="email"], input[type="password"], textarea { 
+        input[type="date"], input[type="text"], input[type="number"], input[type="email"], input[type="password"], textarea { 
             padding: 12px; border-radius: 12px; border: 2px solid var(--secondary); font-family: inherit; color: var(--text-dark); background: var(--bg-color); outline: none; box-sizing: border-box; 
         }
         .weight-input-container { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 20px; }
         .weight-input-container input { font-size: 2rem; width: 120px; text-align: center; font-weight: bold; color: var(--primary-dark); border: 2px solid var(--secondary); }
+        
+        /* 🌟 調整底部導覽列，讓 7 個按鈕塞得下 */
         .bottom-nav {
             display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: var(--white); justify-content: space-around;
-            padding: 10px 0; box-shadow: 0 -2px 15px rgba(0,0,0,0.05); border-top-left-radius: 20px; border-top-right-radius: 20px; z-index: 1000;
+            padding: 8px 0; box-shadow: 0 -2px 15px rgba(0,0,0,0.05); border-top-left-radius: 20px; border-top-right-radius: 20px; z-index: 1000;
         }
-        .nav-item { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--text-light); font-size: 0.7rem; cursor: pointer; padding: 5px 2px; flex: 1; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--text-light); font-size: 0.6rem; cursor: pointer; padding: 2px 0; flex: 1; min-width: 0; }
         .nav-item.active { color: var(--primary-dark); font-weight: bold; }
-        .nav-icon { font-size: 1.4rem; margin-bottom: 3px; }
+        .nav-icon { font-size: 1.2rem; margin-bottom: 2px; }
+        
         .login-input { width: 100%; margin-bottom: 15px; font-size: 1rem; }
         
         .modal-overlay {
@@ -89,10 +92,12 @@
         }
         @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-4px); } }
 
-        /* 修改標籤按鈕：字體加大，只留 Emoji */
         .tag-btn { border: 2px solid #e0e0e0; background: var(--white); color: var(--text-light); transition: 0.2s; padding: 10px; font-size: 1.8rem; display: flex; align-items: center; justify-content: center; }
         .tag-btn.active-angel { border-color: #27ae60; background: #e8f8f5; }
         .tag-btn.active-devil { border-color: #c0392b; background: #fdedec; }
+        
+        /* 扭蛋機專屬大字 */
+        .gacha-result { font-size: 3.5rem; margin: 30px 0; font-weight: bold; color: var(--primary-dark); min-height: 80px; display: flex; align-items: center; justify-content: center; text-align: center; }
     </style>
 </head>
 <body>
@@ -231,12 +236,47 @@
             </div>
 
             <textarea id="dietInput" placeholder="點擊上方按鈕，或在此手動輸入..." rows="3" style="width: 100%; margin-bottom: 15px; resize: none; font-size:1rem;"></textarea>
-            <button class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem;" onclick="saveDiet()">儲存飲食</button>
+            <button class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem;" onclick="saveDiet()">儲存飲食 (自動加時間標籤)</button>
             <button class="btn btn-custom" style="width: 100%; padding: 12px; margin-top: 15px; border-style: dashed; color: #27ae60; border-color: #27ae60;" onclick="openRetroModal('diet')">📅 記錄補登</button>
         </div>
         <div class="card history-section">
             <h3 style="margin-top:0;">近期記錄</h3>
             <div id="dietLogList"><div style="text-align:center; color:#ccc; padding:10px;">讀取資料中...</div></div>
+        </div>
+    </div>
+
+    <div id="medPage" class="page">
+        <div class="card">
+            <h1>💊 吃藥記錄</h1>
+            <p class="date-subtitle">記錄用藥與保健食品時間</p>
+            
+            <div class="btn-group" style="margin-bottom: 20px;">
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendMed('感冒藥')">感冒藥</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendMed('止痛藥')">止痛藥</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendMed('胃藥')">胃藥</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendMed('B群')">B群</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendMed('維他命C')">維他命C</button>
+                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendMed('益生菌')">益生菌</button>
+            </div>
+
+            <input type="text" id="medInput" placeholder="輸入藥物或保健品名稱..." style="width: 100%; margin-bottom: 15px;">
+            <button class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem; background-color:#8e44ad;" onclick="saveMed()">儲存用藥</button>
+            <button class="btn btn-custom" style="width: 100%; padding: 12px; margin-top: 15px; border-style: dashed; color: #8e44ad; border-color: #8e44ad;" onclick="openRetroModal('med')">📅 記錄補登</button>
+        </div>
+        <div class="card history-section">
+            <h3 style="margin-top:0;">近期用藥</h3>
+            <div id="medLogList"><div style="text-align:center; color:#ccc; padding:10px;">讀取資料中...</div></div>
+        </div>
+    </div>
+
+    <div id="gachaPage" class="page">
+        <div class="card" style="min-height: 60vh; display: flex; flex-direction: column; justify-content: center;">
+            <h1 style="font-size: 2rem;">🎲 今晚吃什麼？</h1>
+            <p class="date-subtitle" style="margin-bottom: 2rem;">從你過去的紀錄中隨機挑選</p>
+            
+            <div id="gachaResult" class="gacha-result">❓</div>
+            
+            <button id="gachaBtn" class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem; background-color: #f39c12;" onclick="drawGacha()">點我抽隨機正餐</button>
         </div>
     </div>
 
@@ -261,7 +301,10 @@
                 <div id="historyWeightList" style="margin-bottom: 20px;"><div style="text-align:center; color:var(--text-light); padding:10px;">無體重記錄</div></div>
 
                 <h3 style="color: #f39c12;"><span style="font-size:1.2rem;">🍱</span> 飲食記錄</h3>
-                <div id="historyDietList"><div style="text-align:center; color:var(--text-light); padding:10px;">無飲食記錄</div></div>
+                <div id="historyDietList" style="margin-bottom: 20px;"><div style="text-align:center; color:var(--text-light); padding:10px;">無飲食記錄</div></div>
+
+                <h3 style="color: #8e44ad;"><span style="font-size:1.2rem;">💊</span> 吃藥記錄</h3>
+                <div id="historyMedList"><div style="text-align:center; color:var(--text-light); padding:10px;">無吃藥記錄</div></div>
             </div>
         </div>
     </div>
@@ -271,6 +314,8 @@
         <button class="nav-item" onclick="switchTab('record')" id="tab-record"><span class="nav-icon">💧</span><span>喝水</span></button>
         <button class="nav-item" onclick="switchTab('weight')" id="tab-weight"><span class="nav-icon">⚖️</span><span>體重</span></button>
         <button class="nav-item" onclick="switchTab('diet')" id="tab-diet"><span class="nav-icon">🍱</span><span>飲食</span></button>
+        <button class="nav-item" onclick="switchTab('med')" id="tab-med"><span class="nav-icon">💊</span><span>吃藥</span></button>
+        <button class="nav-item" onclick="switchTab('gacha')" id="tab-gacha"><span class="nav-icon">🎲</span><span>扭蛋</span></button>
         <button class="nav-item" onclick="switchTab('calendar')" id="tab-calendar"><span class="nav-icon">📅</span><span>月曆</span></button>
     </div>
 
@@ -285,10 +330,12 @@
             
             <select id="retroDietTag" style="width: 100%; margin-bottom: 10px; display: none; padding: 12px; border-radius: 12px; border: 2px solid var(--secondary); background: var(--bg-color); outline: none;">
                 <option value="">(不加標籤)</option>
-                <option value="😇">😇 仙女餐</option>
-                <option value="😈">😈 罪惡餐</option>
+                <option value="😇">😇</option>
+                <option value="😈">😈</option>
             </select>
             <textarea id="retroDiet" placeholder="輸入補登的飲食內容..." rows="3" style="width: 100%; margin-bottom: 15px; resize: none; display: none;"></textarea>
+            
+            <input type="text" id="retroMed" placeholder="輸入藥物名稱..." style="width: 100%; margin-bottom: 15px; display: none;">
             
             <div style="display: flex; gap: 10px;">
                 <button class="btn btn-undo" style="flex: 1;" onclick="closeRetroModal()">取消</button>
@@ -416,6 +463,7 @@
       if (tabName === 'calendar') { loadMonthlyChart(); window.fetchHistoryByDate(); } 
       else if (tabName === 'weight') { window.loadWeightData(); }
       else if (tabName === 'diet') { window.loadDietData(); }
+      else if (tabName === 'med') { window.loadMedData(); } // 🌟 吃藥分頁
   };
 
   async function updateStreak() {
@@ -649,6 +697,26 @@
                        </div>`;
       });
       document.getElementById('historyDietList').innerHTML = dietHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無飲食記錄</div>';
+
+      // 🌟 吃藥歷史紀錄
+      const qMed = query(collection(db, "med_logs"), where("uid", "==", auth.currentUser.uid));
+      const snapMed = await getDocs(qMed).catch(e => { return {forEach:()=>{}}; });
+      let medHtml = ''; const medDocs = [];
+      snapMed.forEach((docSnap) => { 
+          if(docSnap.data().date === selectedDate) medDocs.push(docSnap.data()); 
+      });
+      medDocs.sort((a, b) => b.timestamp - a.timestamp).forEach((data) => {
+          let timeStr = '--:--';
+          if (data.timestamp) {
+              const dateObj = data.timestamp.toDate();
+              timeStr = `${dayNames[dateObj.getDay()]} ${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
+          }
+          medHtml += `<div class="log-item" style="flex-wrap: wrap;">
+                          <span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${timeStr}</span>
+                          <span style="color: #8e44ad; font-weight:bold; white-space: pre-wrap; word-break: break-all;">${data.med}</span>
+                       </div>`;
+      });
+      document.getElementById('historyMedList').innerHTML = medHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無吃藥記錄</div>';
   };
 
   async function loadMonthlyChart() {
@@ -756,8 +824,20 @@
   };
   
   window.saveDiet = async () => {
-      const mealVal = document.getElementById('dietInput').value.trim();
+      let mealVal = document.getElementById('dietInput').value.trim();
       if(!mealVal) { alert("請輸入飲食內容！"); return; }
+      
+      // 🌟 自動打卡時間標籤 (根據現在幾點)
+      let h = new Date().getHours();
+      let timeLabel = "";
+      if (h >= 5 && h < 11) timeLabel = "[🥞早餐] ";
+      else if (h >= 11 && h < 16) timeLabel = "[🍱午餐] ";
+      else if (h >= 16 && h < 22) timeLabel = "[🍲晚餐] ";
+      else timeLabel = "[🍜宵夜] ";
+      
+      // 把標籤加在最前面
+      mealVal = timeLabel + mealVal;
+
       try {
           const btn = event.target; btn.innerText = "儲存中...";
           await addDoc(collection(db, "diet_logs"), { meal: mealVal, tag: window.currentDietTag, date: getTodayString(), timestamp: Timestamp.now(), uid: auth.currentUser.uid });
@@ -765,8 +845,8 @@
           document.getElementById('dietInput').value = ''; 
           window.toggleDietTag(''); 
           window.loadDietData(); 
-          btn.innerText = "儲存飲食";
-      } catch (e) { alert("儲存失敗"); event.target.innerText = "儲存飲食"; }
+          btn.innerText = "儲存飲食 (自動加時間標籤)";
+      } catch (e) { alert("儲存失敗"); event.target.innerText = "儲存飲食 (自動加時間標籤)"; }
   };
   
   window.deleteDiet = async (id) => {
@@ -795,6 +875,91 @@
       document.getElementById('dietLogList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">尚未有飲食記錄喔。</div>';
   };
 
+  // 🌟 吃藥記錄功能
+  window.appendMed = (text) => {
+      const input = document.getElementById('medInput');
+      if (input.value.trim() !== '') { input.value += ' + ' + text; } 
+      else { input.value = text; }
+  };
+  
+  window.saveMed = async () => {
+      const medVal = document.getElementById('medInput').value.trim();
+      if(!medVal) { alert("請輸入藥物名稱！"); return; }
+      try {
+          const btn = event.target; btn.innerText = "儲存中...";
+          await addDoc(collection(db, "med_logs"), { med: medVal, date: getTodayString(), timestamp: Timestamp.now(), uid: auth.currentUser.uid });
+          document.getElementById('medInput').value = ''; 
+          window.loadMedData(); 
+          btn.innerText = "儲存用藥";
+      } catch (e) { alert("儲存失敗"); event.target.innerText = "儲存用藥"; }
+  };
+
+  window.deleteMed = async (id) => {
+      if(confirm("確定要刪除這筆用藥記錄嗎？")) { await deleteDoc(doc(db, "med_logs", id)); window.loadMedData(); }
+  };
+
+  window.loadMedData = async () => {
+      const querySnapshot = await getDocs(query(collection(db, "med_logs"), where("uid", "==", auth.currentUser.uid))).catch(e => { return {forEach:()=>{}}; });
+      const logs = []; querySnapshot.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
+      logs.sort((a, b) => b.timestamp - a.timestamp); 
+      let html = '';
+      logs.slice(0, 15).forEach(log => { 
+          let timeStr = '--/-- --:--';
+          if (log.timestamp) {
+              const d = log.timestamp.toDate();
+              timeStr = `${d.getMonth()+1}/${d.getDate()} ${dayNames[d.getDay()]} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+          }
+          html += `<div class="log-item" style="flex-wrap: wrap;">
+                      <span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${timeStr}</span>
+                      <span style="color: #8e44ad; font-weight:bold; flex: 1; white-space: pre-wrap; word-break: break-all;">${log.med}</span>
+                      <button onclick="deleteMed('${log.id}')" style="background:none; border:none; color:#ff9e9e; font-size:1.2rem; cursor:pointer; padding: 0 5px;">✖</button>
+                   </div>`;
+      });
+      document.getElementById('medLogList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">尚未有用藥記錄喔。</div>';
+  };
+
+  // 🌟 扭蛋機功能
+  window.drawGacha = async () => {
+      const btn = document.getElementById('gachaBtn');
+      const resultEl = document.getElementById('gachaResult');
+      btn.innerText = "🎰 扭蛋轉動中...";
+      resultEl.innerText = "🤔";
+      resultEl.style.animation = "bounce 0.5s infinite alternate";
+      
+      try {
+          const q = query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid));
+          const snap = await getDocs(q);
+          let foods = [];
+          snap.forEach(doc => {
+              let meal = doc.data().meal;
+              // 移除自動加的時間標籤 (例如 [🥞早餐])，避免抽到標籤
+              meal = meal.replace(/\[.*?\]\s*/g, ''); 
+              let items = meal.split('+').map(i => i.trim());
+              foods.push(...items);
+          });
+          
+          // 過濾掉飲料、水，以及太短的詞
+          let filtered = foods.filter(f => f.length > 0 && !f.includes('咖啡') && !f.includes('茶') && !f.includes('手搖') && !f.includes('水'));
+          let uniqueFoods = [...new Set(filtered)];
+          
+          // 如果紀錄太少，給幾個預設值
+          if(uniqueFoods.length === 0) {
+              uniqueFoods = ["火鍋 🍲", "義大利麵 🍝", "麥當勞 🍟", "健康餐盒 🍱", "水餃 🥟", "拉麵 🍜"];
+          }
+          
+          setTimeout(() => {
+              resultEl.style.animation = "none";
+              let winner = uniqueFoods[Math.floor(Math.random() * uniqueFoods.length)];
+              resultEl.innerText = winner;
+              btn.innerText = "🎲 再抽一次";
+              confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+          }, 1000);
+      } catch(e) {
+          btn.innerText = "🎲 點我抽隨機正餐";
+          resultEl.innerText = "⚠️ 讀取失敗，請確認網路";
+      }
+  };
+
   window.retroType = '';
   window.openRetroModal = (type) => {
       document.getElementById('retroModal').classList.add('active');
@@ -806,11 +971,13 @@
       document.getElementById('retroWeight').style.display = (type === 'weight') ? 'block' : 'none';
       document.getElementById('retroDiet').style.display = (type === 'diet') ? 'block' : 'none';
       document.getElementById('retroDietTag').style.display = (type === 'diet') ? 'block' : 'none'; 
+      document.getElementById('retroMed').style.display = (type === 'med') ? 'block' : 'none'; 
       
       const title = document.getElementById('retroModalTitle');
       if(type === 'water') title.innerText = '💧 補登喝水';
       if(type === 'weight') title.innerText = '⚖️ 補登體重';
       if(type === 'diet') title.innerText = '🍱 補登飲食';
+      if(type === 'med') title.innerText = '💊 補登用藥';
       window.retroType = type;
   };
 
@@ -820,6 +987,7 @@
       document.getElementById('retroWeight').value = '';
       document.getElementById('retroDiet').value = '';
       document.getElementById('retroDietTag').value = '';
+      document.getElementById('retroMed').value = '';
   };
 
   window.saveRetroRecord = async () => {
@@ -852,6 +1020,13 @@
               await addDoc(collection(db, "diet_logs"), { meal: val, tag: tagVal, date: rDate, timestamp: retroTimestamp, uid: auth.currentUser.uid });
               window.loadDietData();
           }
+          // 🌟 吃藥補登儲存
+          else if (window.retroType === 'med') {
+              const val = document.getElementById('retroMed').value.trim();
+              if(!val) throw new Error("請輸入藥物名稱");
+              await addDoc(collection(db, "med_logs"), { med: val, date: rDate, timestamp: retroTimestamp, uid: auth.currentUser.uid });
+              window.loadMedData();
+          }
           alert("✅ 補登成功！請至「月曆」分頁查詢。");
           window.closeRetroModal();
       } catch (e) { alert(e.message || "儲存失敗，請重試"); }
@@ -874,6 +1049,10 @@
           const dietSnap = await getDocs(query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid)));
           dietSnap.forEach(d => { let obj=d.data(); obj.type="🍱 飲食"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
           
+          // 🌟 匯出加入吃藥紀錄
+          const medSnap = await getDocs(query(collection(db, "med_logs"), where("uid", "==", auth.currentUser.uid)));
+          medSnap.forEach(d => { let obj=d.data(); obj.type="💊 吃藥"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
+          
           allData.sort((a,b) => b.ts - a.ts); 
           
           let csvContent = "\uFEFF分類,日期,時間,數值,備註\n";
@@ -883,7 +1062,7 @@
               let val = data.amount ? `${data.amount} ml` : (data.weight ? `${data.weight} kg` : "");
               
               let tagStr = data.tag ? `[${data.tag}] ` : "";
-              let note = data.itemName || data.meal || "";
+              let note = data.itemName || data.meal || data.med || "";
               note = `"${tagStr}${note.replace(/"/g, '""').replace(/\n/g, ' ')}"`; 
               
               csvContent += `${data.type},${data.date},${timeStr},${val},${note}\n`;
