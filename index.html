@@ -62,7 +62,6 @@
         .weight-input-container { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 20px; }
         .weight-input-container input { font-size: 2rem; width: 120px; text-align: center; font-weight: bold; color: var(--primary-dark); border: 2px solid var(--secondary); }
         
-        /* 🌟 調整底部導覽列，讓 7 個按鈕塞得下 */
         .bottom-nav {
             display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: var(--white); justify-content: space-around;
             padding: 8px 0; box-shadow: 0 -2px 15px rgba(0,0,0,0.05); border-top-left-radius: 20px; border-top-right-radius: 20px; z-index: 1000;
@@ -96,7 +95,6 @@
         .tag-btn.active-angel { border-color: #27ae60; background: #e8f8f5; }
         .tag-btn.active-devil { border-color: #c0392b; background: #fdedec; }
         
-        /* 扭蛋機專屬大字 */
         .gacha-result { font-size: 3.5rem; margin: 30px 0; font-weight: bold; color: var(--primary-dark); min-height: 80px; display: flex; align-items: center; justify-content: center; text-align: center; }
     </style>
 </head>
@@ -159,10 +157,13 @@
             <div class="btn-group">
                 <button class="btn btn-custom" style="flex: 1 1 100%;" onclick="customInput()">✏️ 手動輸入</button>
             </div>
+            
             <div class="btn-group">
-                <button class="btn btn-custom" style="flex: 1 1 45%; color: var(--primary-dark); border-color: var(--secondary);" onclick="addCustomButton()">➕ 新增按鈕</button>
-                <button class="btn btn-custom" style="flex: 1 1 45%; color: #c0392b; border-color: #f5b7b1;" onclick="manageCustomButtons()">➖ 刪除按鈕</button>
+                <button class="btn btn-custom" style="flex: 1 1 30%; color: var(--primary-dark); border-color: var(--secondary); padding: 10px 5px;" onclick="addCustomButton()">➕ 新增</button>
+                <button class="btn btn-custom" style="flex: 1 1 30%; color: #f39c12; border-color: #fad7a1; padding: 10px 5px;" onclick="editCustomButton()">✏️ 編輯</button>
+                <button class="btn btn-custom" style="flex: 1 1 30%; color: #c0392b; border-color: #f5b7b1; padding: 10px 5px;" onclick="deleteCustomButton()">➖ 刪除</button>
             </div>
+            
             <div class="btn-group">
                 <button class="btn btn-undo" onclick="undoLast()">↩️ 上一步</button>
                 <button class="btn btn-clear" onclick="clearToday()">🗑️ 清除今日</button>
@@ -207,32 +208,27 @@
             </div>
 
             <div style="text-align: left; margin-bottom: 8px; color: var(--text-dark); font-weight: bold; font-size: 0.95rem;">💧 飲品</div>
-            <div class="btn-group" style="margin-bottom: 15px;">
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('☕ 咖啡')">咖啡</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍵 無糖茶')">無糖茶</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🧋 手搖飲')">手搖飲</button>
+            <div class="btn-group" id="dietDrinksBtnGroup" style="margin-bottom: 10px;"></div>
+            <div class="btn-group" style="margin-bottom: 20px;">
+                <button class="btn btn-custom" style="flex: 1 1 30%; color: var(--primary-dark); border-color: var(--secondary); padding: 5px;" onclick="addDietBtn('drinks')">➕ 新增</button>
+                <button class="btn btn-custom" style="flex: 1 1 30%; color: #f39c12; border-color: #fad7a1; padding: 5px;" onclick="editDietBtn('drinks')">✏️ 編輯</button>
+                <button class="btn btn-custom" style="flex: 1 1 30%; color: #c0392b; border-color: #f5b7b1; padding: 5px;" onclick="deleteDietBtn('drinks')">➖ 刪除</button>
             </div>
 
             <div style="text-align: left; margin-bottom: 8px; color: var(--text-dark); font-weight: bold; font-size: 0.95rem;">🍱 正餐</div>
-            <div class="btn-group" style="margin-bottom: 15px;">
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('👩‍🍳 媽媽食物')">媽媽食物</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍝 義大利麵')">義大利麵</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍛 燉飯')">燉飯</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍜 拉麵')">拉麵</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍣 壽司')">壽司</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍲 火鍋')">火鍋</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🐟 酸菜魚')">酸菜魚</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍢 夜市')">夜市</button>
+            <div class="btn-group" id="dietMealsBtnGroup" style="margin-bottom: 10px;"></div>
+            <div class="btn-group" style="margin-bottom: 20px;">
+                <button class="btn btn-custom" style="flex: 1 1 30%; color: var(--primary-dark); border-color: var(--secondary); padding: 5px;" onclick="addDietBtn('meals')">➕ 新增</button>
+                <button class="btn btn-custom" style="flex: 1 1 30%; color: #f39c12; border-color: #fad7a1; padding: 5px;" onclick="editDietBtn('meals')">✏️ 編輯</button>
+                <button class="btn btn-custom" style="flex: 1 1 30%; color: #c0392b; border-color: #f5b7b1; padding: 5px;" onclick="deleteDietBtn('meals')">➖ 刪除</button>
             </div>
 
             <div style="text-align: left; margin-bottom: 8px; color: var(--text-dark); font-weight: bold; font-size: 0.95rem;">🍎 輕食與小點</div>
+            <div class="btn-group" id="dietSnacksBtnGroup" style="margin-bottom: 10px;"></div>
             <div class="btn-group" style="margin-bottom: 20px;">
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍞 麵包')">麵包</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🥚 蛋')">蛋</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍎 蘋果')">蘋果</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍐 芭樂')">芭樂</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍬 糖果')">糖果</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('🍪 餅乾')">餅乾</button>
+                <button class="btn btn-custom" style="flex: 1 1 30%; color: var(--primary-dark); border-color: var(--secondary); padding: 5px;" onclick="addDietBtn('snacks')">➕ 新增</button>
+                <button class="btn btn-custom" style="flex: 1 1 30%; color: #f39c12; border-color: #fad7a1; padding: 5px;" onclick="editDietBtn('snacks')">✏️ 編輯</button>
+                <button class="btn btn-custom" style="flex: 1 1 30%; color: #c0392b; border-color: #f5b7b1; padding: 5px;" onclick="deleteDietBtn('snacks')">➖ 刪除</button>
             </div>
 
             <textarea id="dietInput" placeholder="點擊上方按鈕，或在此手動輸入..." rows="3" style="width: 100%; margin-bottom: 15px; resize: none; font-size:1rem;"></textarea>
@@ -250,13 +246,12 @@
             <h1>💊 吃藥記錄</h1>
             <p class="date-subtitle">記錄用藥與保健食品時間</p>
             
+            <div class="btn-group" id="medBtnGroup" style="margin-bottom: 10px;"></div>
+            
             <div class="btn-group" style="margin-bottom: 20px;">
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendMed('感冒藥')">感冒藥</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendMed('止痛藥')">止痛藥</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendMed('胃藥')">胃藥</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendMed('B群')">B群</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendMed('維他命C')">維他命C</button>
-                <button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendMed('益生菌')">益生菌</button>
+                <button class="btn btn-custom" style="flex: 1 1 30%; color: #8e44ad; border-color: #d2b4de; padding: 10px 5px;" onclick="addMedButton()">➕ 新增</button>
+                <button class="btn btn-custom" style="flex: 1 1 30%; color: #f39c12; border-color: #fad7a1; padding: 10px 5px;" onclick="editMedButton()">✏️ 編輯</button>
+                <button class="btn btn-custom" style="flex: 1 1 30%; color: #c0392b; border-color: #f5b7b1; padding: 10px 5px;" onclick="deleteMedButton()">➖ 刪除</button>
             </div>
 
             <input type="text" id="medInput" placeholder="輸入藥物或保健品名稱..." style="width: 100%; margin-bottom: 15px;">
@@ -271,12 +266,12 @@
 
     <div id="gachaPage" class="page">
         <div class="card" style="min-height: 60vh; display: flex; flex-direction: column; justify-content: center;">
-            <h1 style="font-size: 2rem;">🎲 今晚吃什麼？</h1>
+            <h1 style="font-size: 2rem;">🎲 要吃什麼？</h1>
             <p class="date-subtitle" style="margin-bottom: 2rem;">從你過去的紀錄中隨機挑選</p>
             
             <div id="gachaResult" class="gacha-result">❓</div>
             
-            <button id="gachaBtn" class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem; background-color: #f39c12;" onclick="drawGacha()">點我抽隨機正餐</button>
+            <button id="gachaBtn" class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem; background-color: #f39c12;" onclick="drawGacha()">點我抽隨機餐點</button>
         </div>
     </div>
 
@@ -463,7 +458,7 @@
       if (tabName === 'calendar') { loadMonthlyChart(); window.fetchHistoryByDate(); } 
       else if (tabName === 'weight') { window.loadWeightData(); }
       else if (tabName === 'diet') { window.loadDietData(); }
-      else if (tabName === 'med') { window.loadMedData(); } // 🌟 吃藥分頁
+      else if (tabName === 'med') { window.loadMedData(); } 
   };
 
   async function updateStreak() {
@@ -574,6 +569,7 @@
       } else alert("今天本來就沒有記錄喔！");
   };
 
+  // 🌟 喝水按鈕管理
   window.renderCustomButtons = () => {
       const container = document.getElementById('customBtnGroup');
       const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
@@ -583,7 +579,6 @@
       });
       container.innerHTML = html;
   };
-
   window.addCustomButton = () => {
       let name = prompt("請輸入自訂水杯名稱\n(例如：我的保溫瓶)：", "");
       if (!name || name.trim() === "") return;
@@ -596,19 +591,32 @@
       localStorage.setItem('myCustomWaterBtns', JSON.stringify(buttons));
       window.renderCustomButtons();
   };
-
-  window.manageCustomButtons = () => {
+  window.editCustomButton = () => {
       const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
-      if (buttons.length === 0) {
-          alert("目前沒有自訂按鈕可以刪除喔！");
-          return;
+      if (buttons.length === 0) { alert("目前沒有自訂按鈕可以編輯喔！"); return; }
+      let promptText = "請輸入要編輯的按鈕「數字編號」：\n\n";
+      buttons.forEach((btn, index) => { promptText += `${index + 1}. ${btn.name} (${btn.amount} ml)\n`; });
+      let choice = prompt(promptText);
+      if (choice !== null && choice.trim() !== "") {
+          let idx = parseInt(choice, 10) - 1;
+          if (idx >= 0 && idx < buttons.length) {
+              let newName = prompt("請輸入新的水杯名稱：", buttons[idx].name);
+              if (!newName || newName.trim() === "") return;
+              let newAmount = prompt(`請輸入「${newName}」的容量 (ml)：`, buttons[idx].amount);
+              if (!newAmount || newAmount.trim() === "") return;
+              let amount = parseInt(newAmount, 10);
+              if (isNaN(amount) || amount <= 0) { alert("⚠️ 請輸入大於 0 的有效數字！"); return; }
+              buttons[idx] = { name: newName.trim(), amount: amount };
+              localStorage.setItem('myCustomWaterBtns', JSON.stringify(buttons));
+              window.renderCustomButtons();
+          } else { alert("⚠️ 找不到這個編號，請重新輸入！"); }
       }
-      
+  };
+  window.deleteCustomButton = () => {
+      const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
+      if (buttons.length === 0) { alert("目前沒有自訂按鈕可以刪除喔！"); return; }
       let promptText = "請輸入要刪除的按鈕「數字編號」：\n\n";
-      buttons.forEach((btn, index) => {
-          promptText += `${index + 1}. ${btn.name} (${btn.amount} ml)\n`;
-      });
-      
+      buttons.forEach((btn, index) => { promptText += `${index + 1}. ${btn.name} (${btn.amount} ml)\n`; });
       let choice = prompt(promptText);
       if (choice !== null && choice.trim() !== "") {
           let idx = parseInt(choice, 10) - 1;
@@ -618,13 +626,137 @@
                   localStorage.setItem('myCustomWaterBtns', JSON.stringify(buttons));
                   window.renderCustomButtons();
               }
-          } else {
-              alert("⚠️ 找不到這個編號，請重新輸入！");
-          }
+          } else { alert("⚠️ 找不到這個編號，請重新輸入！"); }
       }
   };
 
+  // 🌟 飲食按鈕動態管理系統
+  const defaultDietBtns = {
+      drinks: ['☕ 咖啡', '🍵 無糖茶', '🧋 手搖飲'],
+      meals: ['👩‍🍳 媽媽食物', '🍝 義大利麵', '🍛 燉飯', '🍜 拉麵', '🍣 壽司', '🍲 火鍋', '🐟 酸菜魚', '🍢 夜市'],
+      snacks: ['🍞 麵包', '🥚 蛋', '🍎 蘋果', '🍐 芭樂', '🍬 糖果', '🍪 餅乾']
+  };
+
+  window.renderDietButtons = () => {
+      let btns = JSON.parse(localStorage.getItem('myDietBtns'));
+      if (!btns) {
+          btns = { ...defaultDietBtns };
+          localStorage.setItem('myDietBtns', JSON.stringify(btns));
+      }
+      
+      document.getElementById('dietDrinksBtnGroup').innerHTML = btns.drinks.map(b => `<button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('${b}')">${b}</button>`).join('');
+      document.getElementById('dietMealsBtnGroup').innerHTML = btns.meals.map(b => `<button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('${b}')">${b}</button>`).join('');
+      document.getElementById('dietSnacksBtnGroup').innerHTML = btns.snacks.map(b => `<button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('${b}')">${b}</button>`).join('');
+  };
+
+  window.addDietBtn = (cat) => {
+      let name = prompt("請輸入新的食物名稱 (建議加上 Emoji，如：🍔 漢堡)：", "");
+      if (!name || name.trim() === "") return;
+      let btns = JSON.parse(localStorage.getItem('myDietBtns'));
+      btns[cat].push(name.trim());
+      localStorage.setItem('myDietBtns', JSON.stringify(btns));
+      window.renderDietButtons();
+  };
+
+  window.editDietBtn = (cat) => {
+      let btns = JSON.parse(localStorage.getItem('myDietBtns'));
+      if (btns[cat].length === 0) { alert("沒有按鈕可以編輯！"); return; }
+      let promptText = "請輸入要編輯的「數字編號」：\n\n";
+      btns[cat].forEach((btn, index) => { promptText += `${index + 1}. ${btn}\n`; });
+      let choice = prompt(promptText);
+      if (choice !== null && choice.trim() !== "") {
+          let idx = parseInt(choice, 10) - 1;
+          if (idx >= 0 && idx < btns[cat].length) {
+              let newName = prompt("請輸入新的名稱：", btns[cat][idx]);
+              if (newName !== null && newName.trim() !== "") {
+                  btns[cat][idx] = newName.trim();
+                  localStorage.setItem('myDietBtns', JSON.stringify(btns));
+                  window.renderDietButtons();
+              }
+          } else { alert("⚠️ 找不到編號！"); }
+      }
+  };
+
+  window.deleteDietBtn = (cat) => {
+      let btns = JSON.parse(localStorage.getItem('myDietBtns'));
+      if (btns[cat].length === 0) { alert("沒有按鈕可以刪除！"); return; }
+      let promptText = "請輸入要刪除的「數字編號」：\n\n";
+      btns[cat].forEach((btn, index) => { promptText += `${index + 1}. ${btn}\n`; });
+      let choice = prompt(promptText);
+      if (choice !== null && choice.trim() !== "") {
+          let idx = parseInt(choice, 10) - 1;
+          if (idx >= 0 && idx < btns[cat].length) {
+              if(confirm(`確定刪除「${btns[cat][idx]}」嗎？`)) {
+                  btns[cat].splice(idx, 1);
+                  localStorage.setItem('myDietBtns', JSON.stringify(btns));
+                  window.renderDietButtons();
+              }
+          } else { alert("⚠️ 找不到編號！"); }
+      }
+  };
+
+  // 🌟 吃藥按鈕管理
+  window.renderMedButtons = () => {
+      const container = document.getElementById('medBtnGroup');
+      let buttons = JSON.parse(localStorage.getItem('myMedBtns'));
+      if (!buttons) {
+          buttons = ['感冒藥', '止痛藥', '胃藥', 'B群', '維他命C', '益生菌'];
+          localStorage.setItem('myMedBtns', JSON.stringify(buttons));
+      }
+      let html = '';
+      buttons.forEach((btn) => {
+          html += `<button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendMed('${btn}')">${btn}</button>`;
+      });
+      container.innerHTML = html;
+  };
+  window.addMedButton = () => {
+      let name = prompt("請輸入新的藥物/保健品名稱：", "");
+      if (!name || name.trim() === "") return;
+      const buttons = JSON.parse(localStorage.getItem('myMedBtns') || '[]');
+      buttons.push(name.trim());
+      localStorage.setItem('myMedBtns', JSON.stringify(buttons));
+      window.renderMedButtons();
+  };
+  window.editMedButton = () => {
+      const buttons = JSON.parse(localStorage.getItem('myMedBtns') || '[]');
+      if (buttons.length === 0) { alert("沒有按鈕可以編輯！"); return; }
+      let promptText = "請輸入要編輯的「數字編號」：\n\n";
+      buttons.forEach((btn, index) => { promptText += `${index + 1}. ${btn}\n`; });
+      let choice = prompt(promptText);
+      if (choice !== null && choice.trim() !== "") {
+          let idx = parseInt(choice, 10) - 1;
+          if (idx >= 0 && idx < buttons.length) {
+              let newName = prompt("請輸入新的名稱：", buttons[idx]);
+              if (newName !== null && newName.trim() !== "") {
+                  buttons[idx] = newName.trim();
+                  localStorage.setItem('myMedBtns', JSON.stringify(buttons));
+                  window.renderMedButtons();
+              }
+          } else { alert("⚠️ 找不到編號！"); }
+      }
+  };
+  window.deleteMedButton = () => {
+      const buttons = JSON.parse(localStorage.getItem('myMedBtns') || '[]');
+      if (buttons.length === 0) { alert("沒有按鈕可以刪除！"); return; }
+      let promptText = "請輸入要刪除的「數字編號」：\n\n";
+      buttons.forEach((btn, index) => { promptText += `${index + 1}. ${btn}\n`; });
+      let choice = prompt(promptText);
+      if (choice !== null && choice.trim() !== "") {
+          let idx = parseInt(choice, 10) - 1;
+          if (idx >= 0 && idx < buttons.length) {
+              if(confirm(`確定刪除「${buttons[idx]}」嗎？`)) {
+                  buttons.splice(idx, 1);
+                  localStorage.setItem('myMedBtns', JSON.stringify(buttons));
+                  window.renderMedButtons();
+              }
+          } else { alert("⚠️ 找不到編號！"); }
+      }
+  };
+
+  // 初始化所有動態按鈕
   window.renderCustomButtons();
+  window.renderDietButtons();
+  window.renderMedButtons();
 
   window.fetchHistoryByDate = async () => {
       const selectedDate = document.getElementById('historyDate').value;
@@ -698,7 +830,6 @@
       });
       document.getElementById('historyDietList').innerHTML = dietHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無飲食記錄</div>';
 
-      // 🌟 吃藥歷史紀錄
       const qMed = query(collection(db, "med_logs"), where("uid", "==", auth.currentUser.uid));
       const snapMed = await getDocs(qMed).catch(e => { return {forEach:()=>{}}; });
       let medHtml = ''; const medDocs = [];
@@ -827,7 +958,6 @@
       let mealVal = document.getElementById('dietInput').value.trim();
       if(!mealVal) { alert("請輸入飲食內容！"); return; }
       
-      // 🌟 自動打卡時間標籤 (根據現在幾點)
       let h = new Date().getHours();
       let timeLabel = "";
       if (h >= 5 && h < 11) timeLabel = "[🥞早餐] ";
@@ -835,7 +965,6 @@
       else if (h >= 16 && h < 22) timeLabel = "[🍲晚餐] ";
       else timeLabel = "[🍜宵夜] ";
       
-      // 把標籤加在最前面
       mealVal = timeLabel + mealVal;
 
       try {
@@ -875,7 +1004,6 @@
       document.getElementById('dietLogList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">尚未有飲食記錄喔。</div>';
   };
 
-  // 🌟 吃藥記錄功能
   window.appendMed = (text) => {
       const input = document.getElementById('medInput');
       if (input.value.trim() !== '') { input.value += ' + ' + text; } 
@@ -884,7 +1012,7 @@
   
   window.saveMed = async () => {
       const medVal = document.getElementById('medInput').value.trim();
-      if(!medVal) { alert("請輸入藥物名稱！"); return; }
+      if(!medVal) { alert("請輸入藥物或保健品名稱！"); return; }
       try {
           const btn = event.target; btn.innerText = "儲存中...";
           await addDoc(collection(db, "med_logs"), { med: medVal, date: getTodayString(), timestamp: Timestamp.now(), uid: auth.currentUser.uid });
@@ -918,7 +1046,6 @@
       document.getElementById('medLogList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">尚未有用藥記錄喔。</div>';
   };
 
-  // 🌟 扭蛋機功能
   window.drawGacha = async () => {
       const btn = document.getElementById('gachaBtn');
       const resultEl = document.getElementById('gachaResult');
@@ -932,17 +1059,14 @@
           let foods = [];
           snap.forEach(doc => {
               let meal = doc.data().meal;
-              // 移除自動加的時間標籤 (例如 [🥞早餐])，避免抽到標籤
               meal = meal.replace(/\[.*?\]\s*/g, ''); 
               let items = meal.split('+').map(i => i.trim());
               foods.push(...items);
           });
           
-          // 過濾掉飲料、水，以及太短的詞
           let filtered = foods.filter(f => f.length > 0 && !f.includes('咖啡') && !f.includes('茶') && !f.includes('手搖') && !f.includes('水'));
           let uniqueFoods = [...new Set(filtered)];
           
-          // 如果紀錄太少，給幾個預設值
           if(uniqueFoods.length === 0) {
               uniqueFoods = ["火鍋 🍲", "義大利麵 🍝", "麥當勞 🍟", "健康餐盒 🍱", "水餃 🥟", "拉麵 🍜"];
           }
@@ -955,7 +1079,7 @@
               confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
           }, 1000);
       } catch(e) {
-          btn.innerText = "🎲 點我抽隨機正餐";
+          btn.innerText = "🎲 點我抽隨機餐點";
           resultEl.innerText = "⚠️ 讀取失敗，請確認網路";
       }
   };
@@ -1020,7 +1144,6 @@
               await addDoc(collection(db, "diet_logs"), { meal: val, tag: tagVal, date: rDate, timestamp: retroTimestamp, uid: auth.currentUser.uid });
               window.loadDietData();
           }
-          // 🌟 吃藥補登儲存
           else if (window.retroType === 'med') {
               const val = document.getElementById('retroMed').value.trim();
               if(!val) throw new Error("請輸入藥物名稱");
@@ -1049,7 +1172,6 @@
           const dietSnap = await getDocs(query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid)));
           dietSnap.forEach(d => { let obj=d.data(); obj.type="🍱 飲食"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
           
-          // 🌟 匯出加入吃藥紀錄
           const medSnap = await getDocs(query(collection(db, "med_logs"), where("uid", "==", auth.currentUser.uid)));
           medSnap.forEach(d => { let obj=d.data(); obj.type="💊 吃藥"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
           
