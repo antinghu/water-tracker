@@ -56,19 +56,20 @@
         .log-name { font-size: 0.8em; color: var(--primary); margin-left: 5px; background: var(--bg-color); padding: 2px 6px; border-radius: 8px; }
         .chart-container { position: relative; height: 200px; width: 100%; margin-bottom: 1.5rem; }
         .date-picker-wrapper { text-align: center; margin-bottom: 1rem; }
-        input[type="date"], input[type="text"], input[type="number"], input[type="email"], input[type="password"], textarea { 
+        input[type="date"], input[type="time"], input[type="text"], input[type="number"], input[type="email"], input[type="password"], textarea, select { 
             padding: 12px; border-radius: 12px; border: 2px solid var(--secondary); font-family: inherit; color: var(--text-dark); background: var(--bg-color); outline: none; box-sizing: border-box; 
         }
         .weight-input-container { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 20px; }
         .weight-input-container input { font-size: 2rem; width: 120px; text-align: center; font-weight: bold; color: var(--primary-dark); border: 2px solid var(--secondary); }
         
+        /* 🌟 縮小導覽列字體與間距，塞下 8 個按鈕 */
         .bottom-nav {
             display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: var(--white); justify-content: space-around;
-            padding: 8px 0; box-shadow: 0 -2px 15px rgba(0,0,0,0.05); border-top-left-radius: 20px; border-top-right-radius: 20px; z-index: 1000;
+            padding: 6px 0; box-shadow: 0 -2px 15px rgba(0,0,0,0.05); border-top-left-radius: 20px; border-top-right-radius: 20px; z-index: 1000;
         }
-        .nav-item { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--text-light); font-size: 0.6rem; cursor: pointer; padding: 2px 0; flex: 1; min-width: 0; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--text-light); font-size: 0.55rem; cursor: pointer; padding: 1px 0; flex: 1; min-width: 0; }
         .nav-item.active { color: var(--primary-dark); font-weight: bold; }
-        .nav-icon { font-size: 1.2rem; margin-bottom: 2px; }
+        .nav-icon { font-size: 1.1rem; margin-bottom: 1px; }
         
         .login-input { width: 100%; margin-bottom: 15px; font-size: 1rem; }
         
@@ -96,6 +97,24 @@
         .tag-btn.active-devil { border-color: #c0392b; background: #fdedec; }
         
         .gacha-result { font-size: 3.5rem; margin: 30px 0; font-weight: bold; color: var(--primary-dark); min-height: 80px; display: flex; align-items: center; justify-content: center; text-align: center; }
+
+        /* 🌟 日子分頁：專屬時間軸樣式 */
+        .timeline-container { position: relative; width: 100%; min-height: 100px; padding-bottom: 30px; }
+        .timeline-line { position: absolute; left: 55px; top: 0; bottom: 0; width: 3px; background-color: #fbcfe8; }
+        .event { position: absolute; left: 0; right: 0; display: flex; align-items: flex-start; transition: all 0.3s ease; }
+        .time { width: 45px; font-weight: bold; color: #db2777; font-size: 0.85rem; text-align: right; padding-right: 12px; margin-top: 5px; }
+        .dot { position: absolute; left: 51.5px; top: 7px; width: 10px; height: 10px; background-color: #ec4899; border-radius: 50%; z-index: 2; }
+        .content { 
+            margin-left: 75px; background: white; padding: 10px 12px; border-radius: 12px; font-size: 0.9rem; 
+            color: #374151; box-shadow: 0 2px 8px rgba(0,0,0,0.05); max-width: calc(100% - 90px); word-wrap: break-word; flex: 1; border: 1px solid var(--bg-color);
+        }
+        .category-tag { font-size: 0.75rem; background-color: #f3e8ff; color: #7e22ce; padding: 3px 8px; border-radius: 6px; margin-right: 6px; font-weight: bold; }
+        .duration { position: absolute; left: 63px; font-size: 0.7rem; color: #9ca3af; transform: translateY(-50%); z-index: 1; background-color: var(--white); padding: 2px 6px; border-radius: 6px; font-weight: bold;}
+        .stats-container { margin-top: 20px; background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: left; }
+        .stats-container h3 { color: #9d174d; margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; border-bottom: 2px dashed #fbcfe8; padding-bottom: 8px; }
+        .top5-list { padding-left: 20px; margin-bottom: 30px; color: #374151; font-size: 0.95rem; line-height: 1.8; }
+        .top5-time { font-weight: bold; color: #db2777; float: right; }
+        .chart-wrapper { position: relative; height: 250px; width: 100%; }
     </style>
 </head>
 <body>
@@ -110,7 +129,7 @@
         <div class="card" style="padding: 2rem 1.5rem;">
             <h1 style="font-size: 1.8rem; margin-bottom: 0.5rem;">🔒 專屬記錄</h1>
             <p class="date-subtitle" style="margin-bottom: 1.5rem;">請輸入您的專屬帳號密碼</p>
-            <input type="email" id="emailInput" class="login-input" placeholder="請輸入信箱">
+            <input type="email" id="emailInput" class="login-input" placeholder="請輸入信箱" value="kutar688@gmail.com">
             <input type="password" id="pwdInput" class="login-input" placeholder="請輸入密碼(至少6碼)">
             
             <button id="loginBtn" class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem; margin-top: 10px;" onclick="signIn()">立即登入</button>
@@ -157,13 +176,11 @@
             <div class="btn-group">
                 <button class="btn btn-custom" style="flex: 1 1 100%;" onclick="customInput()">✏️ 手動輸入</button>
             </div>
-            
             <div class="btn-group">
                 <button class="btn btn-custom" style="flex: 1 1 30%; color: var(--primary-dark); border-color: var(--secondary); padding: 10px 5px;" onclick="addCustomButton()">➕ 新增</button>
                 <button class="btn btn-custom" style="flex: 1 1 30%; color: #f39c12; border-color: #fad7a1; padding: 10px 5px;" onclick="editCustomButton()">✏️ 編輯</button>
                 <button class="btn btn-custom" style="flex: 1 1 30%; color: #c0392b; border-color: #f5b7b1; padding: 10px 5px;" onclick="deleteCustomButton()">➖ 刪除</button>
             </div>
-            
             <div class="btn-group">
                 <button class="btn btn-undo" onclick="undoLast()">↩️ 上一步</button>
                 <button class="btn btn-clear" onclick="clearToday()">🗑️ 清除今日</button>
@@ -275,6 +292,45 @@
         </div>
     </div>
 
+    <div id="journalPage" class="page">
+        <div class="card">
+            <h1>📝 我的日子</h1>
+            <p class="date-subtitle" id="journalDateDisplay">載入中...</p>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="time" id="journalTime" style="flex: 1;">
+                <select id="journalCategory" style="flex: 1;">
+                    <option value="個人">個人</option>
+                    <option value="飲食">飲食</option>
+                    <option value="生產力">生產力</option>
+                    <option value="娛樂">娛樂</option>
+                    <option value="社交">社交</option>
+                    <option value="家務">家務</option>
+                    <option value="出門">出門</option>
+                    <option value="未分類">未分類</option>
+                </select>
+            </div>
+            <input type="text" id="journalText" placeholder="輸入事項內容 (例如：洗澡)..." style="width: 100%; margin-bottom: 15px;">
+            <button class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem; background-color: #db2777;" onclick="saveJournal()">➕ 新增時間軸項目</button>
+        </div>
+
+        <div class="card" style="padding: 10px 0; overflow-y: auto; max-height: 550px;">
+            <div class="timeline-container" id="timeline">
+                <div class="timeline-line"></div>
+                </div>
+        </div>
+
+        <div class="stats-container">
+            <h3>🏆 花費時間 Top 5</h3>
+            <ol class="top5-list" id="top5-container"></ol>
+
+            <h3 style="margin-top: 30px;">📊 時間分配圓餅圖</h3>
+            <div class="chart-wrapper">
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+    </div>
+
     <div id="calendarPage" class="page">
         <div class="card">
             <h1>📅 喝水統計</h1>
@@ -311,6 +367,7 @@
         <button class="nav-item" onclick="switchTab('diet')" id="tab-diet"><span class="nav-icon">🍱</span><span>飲食</span></button>
         <button class="nav-item" onclick="switchTab('med')" id="tab-med"><span class="nav-icon">💊</span><span>吃藥</span></button>
         <button class="nav-item" onclick="switchTab('gacha')" id="tab-gacha"><span class="nav-icon">🎲</span><span>扭蛋</span></button>
+        <button class="nav-item" onclick="switchTab('journal')" id="tab-journal"><span class="nav-icon">📝</span><span>日子</span></button>
         <button class="nav-item" onclick="switchTab('calendar')" id="tab-calendar"><span class="nav-icon">📅</span><span>月曆</span></button>
     </div>
 
@@ -362,7 +419,11 @@
   window.currentDocs = [];
   let waterChartInstance = null; 
   let weightChartInstance = null; 
+  window.pieChartInstance = null; // 日子分頁的圓餅圖
+  
   let waterListenerUnsubscribe = null; 
+  let journalListenerUnsubscribe = null; 
+  
   let hasAchievedGoalToday = false;
   window.currentDietTag = '';
   
@@ -378,9 +439,18 @@
       const offset = dObj.getTimezoneOffset() * 60000;
       return new Date(dObj.getTime() - offset).toISOString().split('T')[0];
   }
+  
+  // 設定時間欄位為現在時間
+  function setJournalTimeNow() {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      document.getElementById('journalTime').value = `${hh}:${mm}`;
+  }
 
   const todayStr = getTodayString();
   document.getElementById('homeDateDisplay').innerText = new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'long' });
+  document.getElementById('journalDateDisplay').innerText = new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'long' });
   document.getElementById('historyDate').value = todayStr; 
   document.getElementById('historyDate').max = todayStr;   
 
@@ -392,12 +462,14 @@
           document.getElementById('bottomNav').style.display = 'flex'; 
           switchTab('home'); 
           startWaterListener(); 
+          startJournalListener(); // 啟動日子的即時監聽
       } else {
           document.getElementById('userStatusBar').style.display = 'none';
           document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
           document.getElementById('loginPage').classList.add('active'); 
           document.getElementById('bottomNav').style.display = 'none'; 
           if (waterListenerUnsubscribe) { waterListenerUnsubscribe(); waterListenerUnsubscribe = null; }
+          if (journalListenerUnsubscribe) { journalListenerUnsubscribe(); journalListenerUnsubscribe = null; }
       }
   });
 
@@ -440,7 +512,6 @@
   window.logOut = () => { 
       if(confirm("確定要登出嗎？")) {
           signOut(auth).then(() => {
-              document.getElementById('emailInput').value = '';
               document.getElementById('pwdInput').value = '';
               document.getElementById('loginBtn').innerText = "立即登入";
           });
@@ -459,6 +530,7 @@
       else if (tabName === 'weight') { window.loadWeightData(); }
       else if (tabName === 'diet') { window.loadDietData(); }
       else if (tabName === 'med') { window.loadMedData(); } 
+      else if (tabName === 'journal') { setJournalTimeNow(); } // 🌟 切換到日子時，自動設為現在時間
   };
 
   async function updateStreak() {
@@ -543,6 +615,162 @@
       }, (error) => { console.error("Listener error:", error); });
   }
 
+  // 🌟 ========== 日子 (時間軸) 功能 ========== 🌟
+  window.saveJournal = async () => {
+      const timeStr = document.getElementById('journalTime').value;
+      const category = document.getElementById('journalCategory').value;
+      const text = document.getElementById('journalText').value.trim();
+
+      if (!timeStr || !text) { alert("請輸入時間與內容！"); return; }
+
+      try {
+          const btn = event.target; btn.innerText = "儲存中...";
+          await addDoc(collection(db, "journal_logs"), { 
+              timeStr: timeStr, 
+              category: category, 
+              text: text, 
+              date: getTodayString(), 
+              timestamp: Timestamp.now(), 
+              uid: auth.currentUser.uid 
+          });
+          document.getElementById('journalText').value = '';
+          btn.innerText = "➕ 新增時間軸項目";
+      } catch (e) { 
+          alert("儲存失敗"); 
+          event.target.innerText = "➕ 新增時間軸項目"; 
+      }
+  };
+
+  window.deleteJournal = async (id) => {
+      if(confirm("確定要刪除這個項目嗎？")) { 
+          await deleteDoc(doc(db, "journal_logs", id)); 
+      }
+  };
+
+  function startJournalListener() {
+      if (journalListenerUnsubscribe) { journalListenerUnsubscribe(); }
+      const qToday = query(collection(db, "journal_logs"), where("uid", "==", auth.currentUser.uid));
+      
+      journalListenerUnsubscribe = onSnapshot(qToday, (snapshot) => {
+          const events = [];
+          snapshot.forEach(docSnap => {
+              if (docSnap.data().date === todayStr) {
+                  let d = docSnap.data();
+                  let [hours, minutes] = d.timeStr.split(':').map(Number);
+                  d.totalMins = hours * 60 + minutes;
+                  d.id = docSnap.id;
+                  events.push(d);
+              }
+          });
+          
+          events.sort((a, b) => a.totalMins - b.totalMins);
+          
+          for (let i = 0; i < events.length; i++) {
+              if (i < events.length - 1) {
+                  events[i].duration = events[i+1].totalMins - events[i].totalMins;
+              } else {
+                  events[i].duration = 15; // 預設最後一項為15分鐘
+              }
+          }
+          
+          renderJournal(events);
+      });
+  }
+
+  function renderJournal(events) {
+      const timelineEl = document.getElementById('timeline');
+      timelineEl.innerHTML = '<div class="timeline-line"></div>'; 
+      
+      if (events.length === 0) {
+          timelineEl.innerHTML += '<div style="text-align:center; padding: 20px; color:#9ca3af;">今天還沒有紀錄喔！</div>';
+          document.getElementById('top5-container').innerHTML = '';
+          if(window.pieChartInstance) window.pieChartInstance.destroy();
+          return;
+      }
+
+      const startMins = events[0].totalMins - 30; // 自動根據最早的時間往前推半小時開始
+      const pxPerMin = 3; 
+      const minSpacing = 65; // 為了塞按鈕，稍微拉開間距
+
+      let lastTop = -100; 
+      let prevTop = null;
+
+      events.forEach((ev, index) => {
+          let topPosition = (ev.totalMins - startMins) * pxPerMin;
+          if (topPosition - lastTop < minSpacing) {
+              topPosition = lastTop + minSpacing;
+          }
+
+          if (index > 0 && prevTop !== null) {
+              const middlePosition = prevTop + (topPosition - prevTop) / 2;
+              const durationHtml = `<div class="duration" style="top: ${middlePosition}px;">${events[index-1].duration} min</div>`;
+              timelineEl.insertAdjacentHTML('beforeend', durationHtml);
+          }
+
+          const deleteBtn = `<span onclick="deleteJournal('${ev.id}')" style="cursor:pointer; float:right; color:#ff9e9e; font-size:1rem; margin-left:10px;">✖</span>`;
+
+          const eventHtml = `
+              <div class="event" style="top: ${topPosition}px;">
+                  <div class="time">${ev.timeStr}</div>
+                  <div class="dot"></div>
+                  <div class="content">
+                      <span class="category-tag">${ev.category}</span>${ev.text}
+                      ${deleteBtn}
+                  </div>
+              </div>
+          `;
+          timelineEl.insertAdjacentHTML('beforeend', eventHtml);
+          
+          lastTop = topPosition;
+          prevTop = topPosition;
+      });
+      
+      // 動態伸長時間軸高度
+      timelineEl.style.height = (lastTop + 100) + 'px';
+
+      // 產生 Top 5 排行榜
+      const sortedEvents = [...events].sort((a, b) => b.duration - a.duration).slice(0, 5);
+      const top5Container = document.getElementById('top5-container');
+      top5Container.innerHTML = '';
+      sortedEvents.forEach(ev => {
+          const li = document.createElement('li');
+          li.innerHTML = `[${ev.category}] ${ev.text} <span class="top5-time">${ev.duration} min</span>`;
+          top5Container.appendChild(li);
+      });
+
+      // 產生圓餅圖
+      const categoryData = { "娛樂": 0, "出門": 0, "個人": 0, "家務": 0, "生產力": 0, "飲食": 0, "社交": 0, "未分類": 0 };
+      events.forEach(ev => {
+          if (categoryData[ev.category] !== undefined) categoryData[ev.category] += ev.duration;
+          else categoryData["未分類"] += ev.duration;
+      });
+
+      const labels = Object.keys(categoryData).filter(key => categoryData[key] > 0);
+      const dataValues = labels.map(key => categoryData[key]);
+      
+      const bgColors = labels.map(label => {
+          switch(label) {
+              case '娛樂': return '#a78bfa';
+              case '出門': return '#f472b6';
+              case '個人': return '#fbbf24';
+              case '家務': return '#9ca3af';
+              case '生產力': return '#34d399';
+              case '飲食': return '#fb923c';
+              case '社交': return '#60a5fa';
+              default: return '#cbd5e1'; 
+          }
+      });
+
+      if (window.pieChartInstance) { window.pieChartInstance.destroy(); }
+      const ctx = document.getElementById('pieChart').getContext('2d');
+      window.pieChartInstance = new Chart(ctx, {
+          type: 'doughnut',
+          data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: bgColors, borderWidth: 2, borderColor: '#ffffff' }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { family: '-apple-system, sans-serif' } } } } }
+      });
+  }
+  // 🌟 ========== 日子功能結束 ========== 🌟
+
   window.addWater = async (amount, itemName = '') => {
       try { await addDoc(collection(db, "water_logs"), { amount, itemName, date: getTodayString(), timestamp: Timestamp.now(), uid: auth.currentUser.uid }); } 
       catch (e) { console.error(e); }
@@ -569,7 +797,6 @@
       } else alert("今天本來就沒有記錄喔！");
   };
 
-  // 🌟 喝水按鈕管理
   window.renderCustomButtons = () => {
       const container = document.getElementById('customBtnGroup');
       const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
@@ -630,7 +857,6 @@
       }
   };
 
-  // 🌟 飲食按鈕動態管理系統
   const defaultDietBtns = {
       drinks: ['☕ 咖啡', '🍵 無糖茶', '🧋 手搖飲'],
       meals: ['👩‍🍳 媽媽食物', '🍝 義大利麵', '🍛 燉飯', '🍜 拉麵', '🍣 壽司', '🍲 火鍋', '🐟 酸菜魚', '🍢 夜市'],
@@ -657,7 +883,6 @@
       localStorage.setItem('myDietBtns', JSON.stringify(btns));
       window.renderDietButtons();
   };
-
   window.editDietBtn = (cat) => {
       let btns = JSON.parse(localStorage.getItem('myDietBtns'));
       if (btns[cat].length === 0) { alert("沒有按鈕可以編輯！"); return; }
@@ -676,7 +901,6 @@
           } else { alert("⚠️ 找不到編號！"); }
       }
   };
-
   window.deleteDietBtn = (cat) => {
       let btns = JSON.parse(localStorage.getItem('myDietBtns'));
       if (btns[cat].length === 0) { alert("沒有按鈕可以刪除！"); return; }
@@ -695,7 +919,6 @@
       }
   };
 
-  // 🌟 吃藥按鈕管理
   window.renderMedButtons = () => {
       const container = document.getElementById('medBtnGroup');
       let buttons = JSON.parse(localStorage.getItem('myMedBtns'));
@@ -753,7 +976,6 @@
       }
   };
 
-  // 初始化所有動態按鈕
   window.renderCustomButtons();
   window.renderDietButtons();
   window.renderMedButtons();
@@ -1174,17 +1396,24 @@
           
           const medSnap = await getDocs(query(collection(db, "med_logs"), where("uid", "==", auth.currentUser.uid)));
           medSnap.forEach(d => { let obj=d.data(); obj.type="💊 吃藥"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
+
+          // 🌟 匯出加入日子紀錄
+          const journalSnap = await getDocs(query(collection(db, "journal_logs"), where("uid", "==", auth.currentUser.uid)));
+          journalSnap.forEach(d => { let obj=d.data(); obj.type="📝 日子"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
           
           allData.sort((a,b) => b.ts - a.ts); 
           
           let csvContent = "\uFEFF分類,日期,時間,數值,備註\n";
           allData.forEach(data => {
               let dObj = data.timestamp ? data.timestamp.toDate() : new Date(data.date);
-              let timeStr = dObj.getHours().toString().padStart(2, '0') + ':' + dObj.getMinutes().toString().padStart(2, '0');
+              
+              // 處理日子專用的 timeStr
+              let timeStr = data.timeStr ? data.timeStr : (dObj.getHours().toString().padStart(2, '0') + ':' + dObj.getMinutes().toString().padStart(2, '0'));
+              
               let val = data.amount ? `${data.amount} ml` : (data.weight ? `${data.weight} kg` : "");
               
-              let tagStr = data.tag ? `[${data.tag}] ` : "";
-              let note = data.itemName || data.meal || data.med || "";
+              let tagStr = data.tag ? `[${data.tag}] ` : (data.category ? `[${data.category}] ` : "");
+              let note = data.itemName || data.meal || data.med || data.text || "";
               note = `"${tagStr}${note.replace(/"/g, '""').replace(/\n/g, ' ')}"`; 
               
               csvContent += `${data.type},${data.date},${timeStr},${val},${note}\n`;
