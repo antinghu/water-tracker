@@ -302,7 +302,8 @@ function renderJournal(events) {
             timelineEl.insertAdjacentHTML('beforeend', durationHtml);
         }
 
-        const deleteBtn = `<span onclick="deleteJournal('${ev.id}')" style="cursor:pointer; float:right; color:#ff9e9e; font-size:1rem; margin-left:10px;">✖</span>`;
+        // 🌟 加上 hide-on-export 標籤，這樣拍照時就會自動略過它
+        const deleteBtn = `<span class="hide-on-export" onclick="deleteJournal('${ev.id}')" style="cursor:pointer; float:right; color:#ff9e9e; font-size:1rem; margin-left:10px;">✖</span>`;
 
         const eventHtml = `
             <div class="event" style="top: ${topPosition}px;">
@@ -1024,30 +1025,29 @@ window.exportToCSV = async (event) => {
     }
 };
 
-// 🌟 將時間軸輸出成圖片的功能
+// 🌟 輸出時間軸圖片功能
 window.exportTimelineImage = async (event) => {
     const btn = event.target;
     const originalText = btn.innerText;
-    btn.innerText = "📸 喀嚓！產生中...";
+    btn.innerText = "📸 產生中...";
 
-    // 找到包住時間軸的那個卡片
     const timelineCard = document.getElementById('timelineCard');
     
-    // 因為平常有捲動條(overflow)，拍照時要先把捲動條打開，才拍得到完整的長圖
+    // 展開所有內容
     const originalMaxHeight = timelineCard.style.maxHeight;
     const originalOverflow = timelineCard.style.overflowY;
     timelineCard.style.maxHeight = 'none';
     timelineCard.style.overflowY = 'visible';
 
     try {
-        // 使用 html2canvas 幫指定的區塊「拍照」
         const canvas = await html2canvas(timelineCard, {
-            backgroundColor: '#ffffff', // 設定白底，避免透明變黑
-            scale: 2, // 提高畫質，讓文字清晰
-            useCORS: true // 允許載入跨域圖片(如果有Emoji的話)
+            backgroundColor: '#ffffff', 
+            scale: 2, 
+            useCORS: true,
+            // 🌟 在這裡發動「隱身術」，不把有 hide-on-export 標籤的東西拍進去
+            ignoreElements: (element) => element.classList.contains('hide-on-export') 
         });
 
-        // 建立一個隱藏的下載連結來存圖片
         const link = document.createElement('a');
         link.download = `我的日子_${getTodayString()}.png`;
         link.href = canvas.toDataURL('image/png');
@@ -1057,7 +1057,7 @@ window.exportTimelineImage = async (event) => {
         console.error(err);
         alert("圖片匯出失敗，請確認網路連線喔！");
     } finally {
-        // 拍完照後，把捲動條的設定還原
+        // 拍完照恢復原狀
         timelineCard.style.maxHeight = originalMaxHeight;
         timelineCard.style.overflowY = originalOverflow;
         btn.innerText = originalText;
