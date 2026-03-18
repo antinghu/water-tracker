@@ -46,7 +46,11 @@ function setJournalTimeNow() {
 
 const todayStr = getTodayString();
 document.getElementById('homeDateDisplay').innerText = new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'long' });
-document.getElementById('journalDateDisplay').innerText = new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'long' });
+
+// 🌟 設定日子的日曆預設為今天
+document.getElementById('journalDate').value = todayStr;
+document.getElementById('journalDate').max = todayStr;
+
 document.getElementById('historyDate').value = todayStr; 
 document.getElementById('historyDate').max = todayStr;   
 
@@ -58,7 +62,7 @@ onAuthStateChanged(auth, (user) => {
         document.getElementById('bottomNav').style.display = 'flex'; 
         switchTab('home'); 
         startWaterListener(); 
-        startJournalListener(); 
+        window.loadJournalByDate(); // 🌟 啟動時自動載入你選定的日期 (預設是今天)
     } else {
         document.getElementById('userStatusBar').style.display = 'none';
         document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
@@ -211,10 +215,13 @@ function startWaterListener() {
     }, (error) => { console.error("Listener error:", error); });
 }
 
+// 🌟 日子：新增存檔功能 (自動綁定到你選的那一天)
 window.saveJournal = async () => {
     const timeStr = document.getElementById('journalTime').value;
     const category = document.getElementById('journalCategory').value;
     const text = document.getElementById('journalText').value.trim();
+    // 如果你正在看昨天的紀錄，存檔就會存在昨天！
+    const targetDate = document.getElementById('journalDate').value || getTodayString(); 
 
     if (!timeStr || !text) { alert("請輸入時間與內容！"); return; }
 
@@ -224,15 +231,15 @@ window.saveJournal = async () => {
             timeStr: timeStr, 
             category: category, 
             text: text, 
-            date: getTodayString(), 
+            date: targetDate, 
             timestamp: Timestamp.now(), 
             uid: auth.currentUser.uid 
         });
         document.getElementById('journalText').value = '';
-        btn.innerText = "➕ 新增時間軸項目";
+        btn.innerText = "➕ 新增紀錄";
     } catch (e) { 
         alert("儲存失敗"); 
-        event.target.innerText = "➕ 新增時間軸項目"; 
+        event.target.innerText = "➕ 新增紀錄"; 
     }
 };
 
@@ -242,14 +249,18 @@ window.deleteJournal = async (id) => {
     }
 };
 
-function startJournalListener() {
+// 🌟 日子：根據日期載入時間軸 (時光機功能)
+window.loadJournalByDate = () => {
+    const selectedDate = document.getElementById('journalDate').value;
+    if (!selectedDate) return;
+
     if (journalListenerUnsubscribe) { journalListenerUnsubscribe(); }
-    const qToday = query(collection(db, "journal_logs"), where("uid", "==", auth.currentUser.uid));
+    const q = query(collection(db, "journal_logs"), where("uid", "==", auth.currentUser.uid));
     
-    journalListenerUnsubscribe = onSnapshot(qToday, (snapshot) => {
+    journalListenerUnsubscribe = onSnapshot(q, (snapshot) => {
         const events = [];
         snapshot.forEach(docSnap => {
-            if (docSnap.data().date === todayStr) {
+            if (docSnap.data().date === selectedDate) { // 只抓取你選的那天
                 let d = docSnap.data();
                 let [hours, minutes] = d.timeStr.split(':').map(Number);
                 d.totalMins = hours * 60 + minutes;
@@ -270,14 +281,14 @@ function startJournalListener() {
         
         renderJournal(events);
     });
-}
+};
 
 function renderJournal(events) {
     const timelineEl = document.getElementById('timeline');
     timelineEl.innerHTML = '<div class="timeline-line"></div>'; 
     
     if (events.length === 0) {
-        timelineEl.innerHTML += '<div style="text-align:center; padding: 20px; color:#9ca3af;">今天還沒有紀錄喔！</div>';
+        timelineEl.innerHTML += '<div style="text-align:center; padding: 20px; color:#9ca3af;">這天沒有紀錄喔！快來補登吧！</div>';
         document.getElementById('top5-container').innerHTML = '';
         if(window.pieChartInstance) window.pieChartInstance.destroy();
         return;
@@ -302,7 +313,6 @@ function renderJournal(events) {
             timelineEl.insertAdjacentHTML('beforeend', durationHtml);
         }
 
-        // 🌟 修改了刪除按鈕與文字區塊的架構，讓它們獨立分成三格
         const deleteBtn = `<span class="hide-on-export" onclick="deleteJournal('${ev.id}')" style="cursor:pointer; flex-shrink: 0; color:#ff9e9e; font-size:1.1rem; margin-left:8px; display: flex; align-items: center;">✖</span>`;
 
         const eventHtml = `
@@ -363,6 +373,42 @@ function renderJournal(events) {
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { family: '-apple-system, sans-serif' } } } } }
     });
 }
+
+// 輸出圖片
+window.exportTimelineImage = async (event) => {
+    const btn = event.target;
+    const originalText = btn.innerText;
+    btn.innerText = "📸 產生中...";
+
+    const timelineCard = document.getElementById('timelineCard');
+    const originalMaxHeight = timelineCard.style.maxHeight;
+    const originalOverflow = timelineCard.style.overflowY;
+    timelineCard.style.maxHeight = 'none';
+    timelineCard.style.overflowY = 'visible';
+
+    try {
+        const canvas = await html2canvas(timelineCard, {
+            backgroundColor: '#ffffff', 
+            scale: 2, 
+            useCORS: true,
+            ignoreElements: (element) => element.classList.contains('hide-on-export') 
+        });
+
+        const link = document.createElement('a');
+        // 🌟 存圖檔名會顯示你選的那天
+        link.download = `我的日子_${document.getElementById('journalDate').value}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        
+    } catch (err) {
+        console.error(err);
+        alert("圖片匯出失敗，請確認網路連線喔！");
+    } finally {
+        timelineCard.style.maxHeight = originalMaxHeight;
+        timelineCard.style.overflowY = originalOverflow;
+        btn.innerText = originalText;
+    }
+};
 
 window.addWater = async (amount, itemName = '') => {
     try { await addDoc(collection(db, "water_logs"), { amount, itemName, date: getTodayString(), timestamp: Timestamp.now(), uid: auth.currentUser.uid }); } 
@@ -663,6 +709,25 @@ window.fetchHistoryByDate = async () => {
                      </div>`;
     });
     document.getElementById('historyMedList').innerHTML = medHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無吃藥記錄</div>';
+
+    // 🌟 也在月曆加入查詢日子的紀錄
+    const qJournal = query(collection(db, "journal_logs"), where("uid", "==", auth.currentUser.uid));
+    const snapJournal = await getDocs(qJournal).catch(e => { return {forEach:()=>{}}; });
+    let journalHtml = ''; const journalDocs = [];
+    snapJournal.forEach((docSnap) => { 
+        if(docSnap.data().date === selectedDate) journalDocs.push(docSnap.data()); 
+    });
+    journalDocs.sort((a, b) => {
+        const aMins = parseInt(a.timeStr.split(':')[0])*60 + parseInt(a.timeStr.split(':')[1]);
+        const bMins = parseInt(b.timeStr.split(':')[0])*60 + parseInt(b.timeStr.split(':')[1]);
+        return bMins - aMins; 
+    }).forEach((data) => {
+        journalHtml += `<div class="log-item" style="flex-wrap: wrap;">
+                        <span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${data.timeStr}</span>
+                        <span style="color: #374151; font-weight:bold; flex: 1; white-space: pre-wrap; word-break: break-all;">[${data.category}] ${data.text}</span>
+                     </div>`;
+    });
+    document.getElementById('historyJournalList').innerHTML = journalHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無日子記錄</div>';
 };
 
 async function loadMonthlyChart() {
@@ -1022,45 +1087,6 @@ window.exportToCSV = async (event) => {
     } catch (error) {
         console.error(error);
         alert("匯出失敗，請確認網路連線。");
-        btn.innerText = originalText;
-    }
-};
-
-// 🌟 輸出時間軸圖片功能
-window.exportTimelineImage = async (event) => {
-    const btn = event.target;
-    const originalText = btn.innerText;
-    btn.innerText = "📸 產生中...";
-
-    const timelineCard = document.getElementById('timelineCard');
-    
-    // 展開所有內容
-    const originalMaxHeight = timelineCard.style.maxHeight;
-    const originalOverflow = timelineCard.style.overflowY;
-    timelineCard.style.maxHeight = 'none';
-    timelineCard.style.overflowY = 'visible';
-
-    try {
-        const canvas = await html2canvas(timelineCard, {
-            backgroundColor: '#ffffff', 
-            scale: 2, 
-            useCORS: true,
-            // 🌟 在這裡發動「隱身術」，不把有 hide-on-export 標籤的東西拍進去
-            ignoreElements: (element) => element.classList.contains('hide-on-export') 
-        });
-
-        const link = document.createElement('a');
-        link.download = `我的日子_${getTodayString()}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        
-    } catch (err) {
-        console.error(err);
-        alert("圖片匯出失敗，請確認網路連線喔！");
-    } finally {
-        // 拍完照恢復原狀
-        timelineCard.style.maxHeight = originalMaxHeight;
-        timelineCard.style.overflowY = originalOverflow;
         btn.innerText = originalText;
     }
 };
