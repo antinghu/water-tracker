@@ -9,7 +9,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
 </head>
 <body>
 
@@ -186,10 +185,11 @@
         </div>
     </div>
 
-        <div id="journalPage" class="page">
+    <div id="journalPage" class="page">
         <div class="card">
             <h1>📝 我的日子</h1>
-            <p class="date-subtitle" id="journalDateDisplay">載入中...</p>
+            
+            <input type="date" id="journalDate" onchange="loadJournalByDate()" style="width: 100%; margin-bottom: 15px; text-align: center; color: #db2777; font-weight: bold; border-color: #fbcfe8;">
             
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <input type="time" id="journalTime" style="flex: 1;">
@@ -253,7 +253,10 @@
                 <div id="historyDietList" style="margin-bottom: 20px;"><div style="text-align:center; color:var(--text-light); padding:10px;">無飲食記錄</div></div>
 
                 <h3 style="color: #8e44ad;"><span style="font-size:1.2rem;">💊</span> 吃藥記錄</h3>
-                <div id="historyMedList"><div style="text-align:center; color:var(--text-light); padding:10px;">無吃藥記錄</div></div>
+                <div id="historyMedList" style="margin-bottom: 20px;"><div style="text-align:center; color:var(--text-light); padding:10px;">無吃藥記錄</div></div>
+
+                <h3 style="color: #db2777;"><span style="font-size:1.2rem;">📝</span> 日子記錄</h3>
+                <div id="historyJournalList"><div style="text-align:center; color:var(--text-light); padding:10px;">無日子記錄</div></div>
             </div>
         </div>
     </div>
