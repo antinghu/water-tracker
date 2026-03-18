@@ -186,7 +186,7 @@
         </div>
     </div>
 
-    <div id="journalPage" class="page">
+        <div id="journalPage" class="page">
         <div class="card">
             <h1>📝 我的日子</h1>
             <p class="date-subtitle" id="journalDateDisplay">載入中...</p>
@@ -205,10 +205,14 @@
                 </select>
             </div>
             <input type="text" id="journalText" placeholder="輸入事項內容 (例如：洗澡)..." style="width: 100%; margin-bottom: 15px;">
-            <button class="btn btn-add" style="width: 100%; padding: 15px; font-size: 1.1rem; background-color: #db2777;" onclick="saveJournal()">➕ 新增時間軸項目</button>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-add" style="flex: 2; padding: 15px; font-size: 1rem; background-color: #db2777;" onclick="saveJournal()">➕ 新增紀錄</button>
+                <button class="btn btn-add" style="flex: 1; padding: 15px; font-size: 1rem; background-color: #27ae60;" onclick="exportTimelineImage(event)">📸 存成圖片</button>
+            </div>
         </div>
 
-        <div class="card" style="padding: 10px 0; overflow-y: auto; max-height: 550px;">
+        <div class="card" id="timelineCard" style="padding: 10px 0; overflow-y: auto; max-height: 550px;">
             <div class="timeline-container" id="timeline">
                 <div class="timeline-line"></div>
             </div>
