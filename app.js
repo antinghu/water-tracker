@@ -302,15 +302,16 @@ function renderJournal(events) {
             timelineEl.insertAdjacentHTML('beforeend', durationHtml);
         }
 
-        // 🌟 加上 hide-on-export 標籤，這樣拍照時就會自動略過它
-        const deleteBtn = `<span class="hide-on-export" onclick="deleteJournal('${ev.id}')" style="cursor:pointer; float:right; color:#ff9e9e; font-size:1rem; margin-left:10px;">✖</span>`;
+        // 🌟 修改了刪除按鈕與文字區塊的架構，讓它們獨立分成三格
+        const deleteBtn = `<span class="hide-on-export" onclick="deleteJournal('${ev.id}')" style="cursor:pointer; flex-shrink: 0; color:#ff9e9e; font-size:1.1rem; margin-left:8px; display: flex; align-items: center;">✖</span>`;
 
         const eventHtml = `
             <div class="event" style="top: ${topPosition}px;">
                 <div class="time">${ev.timeStr}</div>
                 <div class="dot"></div>
                 <div class="content">
-                    <span class="category-tag">${ev.category}</span>${ev.text}
+                    <span class="category-tag">${ev.category}</span>
+                    <span style="flex: 1; line-height: 1.4; word-break: break-all;">${ev.text}</span>
                     ${deleteBtn}
                 </div>
             </div>
