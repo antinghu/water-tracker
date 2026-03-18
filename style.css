@@ -96,6 +96,7 @@ input[type="date"], input[type="time"], input[type="text"], input[type="number"]
 .content { 
     margin-left: 75px; background: white; padding: 8px 10px; border-radius: 12px; font-size: 0.85rem; 
     color: #374151; box-shadow: 0 2px 8px rgba(0,0,0,0.05); max-width: calc(100% - 90px); word-wrap: break-word; flex: 1; border: 1px solid var(--bg-color);
+    text-align: left; /* 🌟 加上這行讓文字乖乖靠左！ */
 }
 .category-tag { font-size: 0.7rem; background-color: #f3e8ff; color: #7e22ce; padding: 2px 6px; border-radius: 6px; margin-right: 6px; font-weight: bold; }
 .duration { position: absolute; left: 63px; font-size: 0.7rem; color: #9ca3af; transform: translateY(-50%); z-index: 1; background-color: var(--white); padding: 2px 6px; border-radius: 6px; font-weight: bold;}
