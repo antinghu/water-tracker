@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-        <style>
+    <style>
         :root {
             --bg-color: #fff0f5;      
             --primary: #ff8da1;       
@@ -58,10 +58,11 @@
         .chart-container { position: relative; height: 200px; width: 100%; margin-bottom: 1.5rem; }
         .date-picker-wrapper { text-align: center; margin-bottom: 1rem; }
         
-        /* 🌟 微創手術：加入 max-width: 100%; min-width: 0; 防止 iOS 螢幕較窄時日期方塊凸出去 */
         input[type="date"], input[type="time"], input[type="text"], input[type="number"], input[type="email"], input[type="password"], textarea, select { 
-            padding: 12px; border-radius: 12px; border: 2px solid var(--secondary); font-family: inherit; color: var(--text-dark); background: var(--bg-color); outline: none; box-sizing: border-box; 
-            max-width: 100%; min-width: 0;
+            padding: 10px; border-radius: 12px; border: 2px solid var(--secondary); font-family: inherit; color: var(--text-dark); background: var(--bg-color); outline: none; box-sizing: border-box; 
+            width: 100%; max-width: 100%; min-width: 0;
+            -webkit-appearance: none; appearance: none;
+            font-size: 0.9rem;
         }
         
         .weight-input-container { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 20px; }
@@ -102,7 +103,7 @@
         
         .gacha-result { font-size: 3.5rem; margin: 30px 0; font-weight: bold; color: var(--primary-dark); min-height: 80px; display: flex; align-items: center; justify-content: center; text-align: center; }
 
-        /* 🌟 日子分頁：專屬時間軸樣式 (字體縮小、文字靠左對齊) */
+        /* 🌟 日子分頁：專屬時間軸樣式 */
         .timeline-container { position: relative; width: 100%; min-height: 100px; padding-bottom: 30px; }
         .timeline-line { position: absolute; left: 55px; top: 0; bottom: 0; width: 3px; background-color: #fbcfe8; }
         .event { position: absolute; left: 0; right: 0; display: flex; align-items: flex-start; transition: all 0.3s ease; }
@@ -305,7 +306,7 @@
         <div class="card">
             <h1>📝 我的日子</h1>
             
-            <input type="date" id="journalDate" onchange="loadJournalByDate()" style="width: 100%; margin-bottom: 15px; text-align: center; color: #db2777; font-weight: bold; border-color: #fbcfe8;">
+            <input type="date" id="journalDate" onchange="loadJournalByDate()" style="margin-bottom: 15px; text-align: center; color: #db2777; font-weight: bold; border-color: #fbcfe8;">
             
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <input type="time" id="journalTime" style="flex: 1;">
@@ -393,7 +394,8 @@
             <h2 id="retroModalTitle" style="margin-top: 0; color: var(--text-dark); font-size: 1.3rem;">📅 補登記錄</h2>
             <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">請選擇日期與輸入內容</p>
             
-            <input type="date" id="retroDate" style="width: 100%; margin-bottom: 15px;">
+            <input type="date" id="retroDate" style="margin-bottom: 15px;">
+            
             <input type="number" id="retroWater" placeholder="輸入喝水量 (ml)" style="width: 100%; margin-bottom: 15px; display: none;">
             <input type="number" id="retroWeight" step="0.1" placeholder="輸入體重 (kg)" style="width: 100%; margin-bottom: 15px; display: none;">
             
@@ -464,8 +466,6 @@
 
   const todayStr = getTodayString();
   document.getElementById('homeDateDisplay').innerText = new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'long' });
-
-  // 🌟 這裡就是那個害你當機的壞掉程式碼，我已經徹底把它拔掉了！
 
   document.getElementById('journalDate').value = todayStr;
   document.getElementById('journalDate').max = todayStr;
@@ -539,7 +539,6 @@
   };
 
   window.switchTab = (tabName) => {
-      // 🌟 恢復最原本穩定正常的檢查機制
       if (!auth.currentUser) return; 
       
       document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
@@ -734,6 +733,7 @@
 
           const deleteBtn = `<span class="hide-on-export" onclick="deleteJournal('${ev.id}')" style="cursor:pointer; flex-shrink: 0; color:#ff9e9e; font-size:1.1rem; margin-left:8px; display: flex; align-items: center;">✖</span>`;
 
+          // 🌟 從這裡拿掉了分類標籤的程式碼
           const eventHtml = `
               <div class="event" style="top: ${topPosition}px;">
                   <div class="time">${ev.timeStr}</div>
@@ -757,6 +757,7 @@
       top5Container.innerHTML = '';
       sortedEvents.forEach(ev => {
           const li = document.createElement('li');
+          // 🌟 還有這裡的排名清單分類也拿掉了
           li.innerHTML = `${ev.text} <span class="top5-time">${ev.duration} min</span>`;
           top5Container.appendChild(li);
       });
