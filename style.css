@@ -87,26 +87,22 @@ input[type="date"], input[type="time"], input[type="text"], input[type="number"]
 
 .gacha-result { font-size: 3.5rem; margin: 30px 0; font-weight: bold; color: var(--primary-dark); min-height: 80px; display: flex; align-items: center; justify-content: center; text-align: center; }
 
-/* 🌟 日子分頁：優化版的排版結構 */
+/* 🌟 日子分頁：字體縮小版 */
 .timeline-container { position: relative; width: 100%; min-height: 100px; padding-bottom: 30px; }
 .timeline-line { position: absolute; left: 55px; top: 0; bottom: 0; width: 3px; background-color: #fbcfe8; }
 .event { position: absolute; left: 0; right: 0; display: flex; align-items: flex-start; transition: all 0.3s ease; }
-.time { width: 45px; font-weight: bold; color: #db2777; font-size: 0.8rem; text-align: right; padding-right: 12px; margin-top: 5px; }
+.time { width: 45px; font-weight: bold; color: #db2777; font-size: 0.7rem; text-align: right; padding-right: 12px; margin-top: 6px; }
 .dot { position: absolute; left: 51.5px; top: 7px; width: 10px; height: 10px; background-color: #ec4899; border-radius: 50%; z-index: 2; }
 .content { 
-    margin-left: 75px; background: white; padding: 8px 10px; border-radius: 12px; font-size: 0.85rem; 
+    margin-left: 75px; background: white; padding: 8px 10px; border-radius: 12px; font-size: 0.8rem; 
     color: #374151; box-shadow: 0 2px 8px rgba(0,0,0,0.05); max-width: calc(100% - 90px); flex: 1; border: 1px solid var(--bg-color);
-    text-align: left;
-    display: flex; /* 改成 flex 排版 */
-    align-items: flex-start; /* 讓內部元素靠上對齊 */
+    text-align: left; display: flex; align-items: flex-start;
 }
 .category-tag { 
-    font-size: 0.7rem; background-color: #f3e8ff; color: #7e22ce; padding: 2px 6px; border-radius: 6px; margin-right: 8px; font-weight: bold; 
-    white-space: nowrap; /* 確保標籤不換行 */
-    flex-shrink: 0; /* 確保標籤不會被擠壓變形 */
-    margin-top: 2px;
+    font-size: 0.65rem; background-color: #f3e8ff; color: #7e22ce; padding: 2px 6px; border-radius: 6px; margin-right: 8px; font-weight: bold; 
+    white-space: nowrap; flex-shrink: 0; margin-top: 2px;
 }
-.duration { position: absolute; left: 63px; font-size: 0.7rem; color: #9ca3af; transform: translateY(-50%); z-index: 1; background-color: var(--white); padding: 2px 6px; border-radius: 6px; font-weight: bold;}
+.duration { position: absolute; left: 63px; font-size: 0.65rem; color: #9ca3af; transform: translateY(-50%); z-index: 1; background-color: var(--white); padding: 2px 6px; border-radius: 6px; font-weight: bold;}
 .stats-container { margin-top: 20px; background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: left; }
 .stats-container h3 { color: #9d174d; margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; border-bottom: 2px dashed #fbcfe8; padding-bottom: 8px; }
 .top5-list { padding-left: 20px; margin-bottom: 30px; color: #374151; font-size: 0.95rem; line-height: 1.8; }
