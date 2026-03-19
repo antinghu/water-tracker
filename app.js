@@ -54,13 +54,14 @@ document.getElementById('journalDate').max = todayStr;
 document.getElementById('historyDate').value = todayStr; 
 document.getElementById('historyDate').max = todayStr;   
 
+// 🌟 處理登入狀態改變
 onAuthStateChanged(auth, (user) => {
     if (user) {
         document.getElementById('userStatusBar').style.display = 'block';
         document.getElementById('currentUserEmail').innerText = user.email;
         document.getElementById('loginPage').classList.remove('active'); 
         document.getElementById('bottomNav').style.display = 'flex'; 
-        switchTab('home'); 
+        window.switchTab('home'); // 確保呼叫的是 window 的 switchTab
         startWaterListener(); 
         window.loadJournalByDate(); 
     } else {
@@ -73,6 +74,7 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
+// 🌟 確保 signIn 掛在 window 上
 window.signIn = () => {
     const email = document.getElementById('emailInput').value.trim();
     const pwd = document.getElementById('pwdInput').value;
@@ -84,6 +86,7 @@ window.signIn = () => {
         .catch((error) => { alert("⚠️ 登入失敗：帳號或密碼錯誤！"); btn.innerText = "立即登入"; });
 };
 
+// 🌟 確保 signUp 掛在 window 上
 window.signUp = () => {
     const email = document.getElementById('emailInput').value.trim();
     const pwd = document.getElementById('pwdInput').value;
@@ -828,7 +831,6 @@ window.appendDiet = (text) => {
     else { input.value = text; }
 };
 
-// 🌟 移除自動標籤功能
 window.saveDiet = async () => {
     let mealVal = document.getElementById('dietInput').value.trim();
     if(!mealVal) { alert("請輸入飲食內容！"); return; }
