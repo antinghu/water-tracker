@@ -735,7 +735,6 @@
                   <div class="time">${ev.timeStr}</div>
                   <div class="dot"></div>
                   <div class="content">
-                      <span class="category-tag">${ev.category}</span>
                       <span style="flex: 1; line-height: 1.4; word-break: break-all;">${ev.text}</span>
                       ${deleteBtn}
                   </div>
@@ -754,7 +753,7 @@
       top5Container.innerHTML = '';
       sortedEvents.forEach(ev => {
           const li = document.createElement('li');
-          li.innerHTML = `[${ev.category}] ${ev.text} <span class="top5-time">${ev.duration} min</span>`;
+          li.innerHTML = `${ev.text} <span class="top5-time">${ev.duration} min</span>`;
           top5Container.appendChild(li);
       });
 
