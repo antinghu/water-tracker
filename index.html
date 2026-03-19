@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <style>
+        <style>
         :root {
             --bg-color: #fff0f5;      
             --primary: #ff8da1;       
@@ -57,9 +57,13 @@
         .log-name { font-size: 0.8em; color: var(--primary); margin-left: 5px; background: var(--bg-color); padding: 2px 6px; border-radius: 8px; }
         .chart-container { position: relative; height: 200px; width: 100%; margin-bottom: 1.5rem; }
         .date-picker-wrapper { text-align: center; margin-bottom: 1rem; }
+        
+        /* 🌟 微創手術：加入 max-width: 100%; min-width: 0; 防止 iOS 螢幕較窄時日期方塊凸出去 */
         input[type="date"], input[type="time"], input[type="text"], input[type="number"], input[type="email"], input[type="password"], textarea, select { 
             padding: 12px; border-radius: 12px; border: 2px solid var(--secondary); font-family: inherit; color: var(--text-dark); background: var(--bg-color); outline: none; box-sizing: border-box; 
+            max-width: 100%; min-width: 0;
         }
+        
         .weight-input-container { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 20px; }
         .weight-input-container input { font-size: 2rem; width: 120px; text-align: center; font-weight: bold; color: var(--primary-dark); border: 2px solid var(--secondary); }
         
