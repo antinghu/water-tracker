@@ -46,8 +46,8 @@ function setJournalTimeNow() {
 
 const todayStr = getTodayString();
 document.getElementById('homeDateDisplay').innerText = new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'long' });
+document.getElementById('journalDateDisplay').innerText = new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'long' });
 
-// 🌟 設定日子的日曆預設為今天
 document.getElementById('journalDate').value = todayStr;
 document.getElementById('journalDate').max = todayStr;
 
@@ -62,7 +62,7 @@ onAuthStateChanged(auth, (user) => {
         document.getElementById('bottomNav').style.display = 'flex'; 
         switchTab('home'); 
         startWaterListener(); 
-        window.loadJournalByDate(); // 🌟 啟動時自動載入你選定的日期 (預設是今天)
+        window.loadJournalByDate(); 
     } else {
         document.getElementById('userStatusBar').style.display = 'none';
         document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
@@ -215,12 +215,10 @@ function startWaterListener() {
     }, (error) => { console.error("Listener error:", error); });
 }
 
-// 🌟 日子：新增存檔功能 (自動綁定到你選的那一天)
 window.saveJournal = async () => {
     const timeStr = document.getElementById('journalTime').value;
     const category = document.getElementById('journalCategory').value;
     const text = document.getElementById('journalText').value.trim();
-    // 如果你正在看昨天的紀錄，存檔就會存在昨天！
     const targetDate = document.getElementById('journalDate').value || getTodayString(); 
 
     if (!timeStr || !text) { alert("請輸入時間與內容！"); return; }
@@ -249,7 +247,6 @@ window.deleteJournal = async (id) => {
     }
 };
 
-// 🌟 日子：根據日期載入時間軸 (時光機功能)
 window.loadJournalByDate = () => {
     const selectedDate = document.getElementById('journalDate').value;
     if (!selectedDate) return;
@@ -260,7 +257,7 @@ window.loadJournalByDate = () => {
     journalListenerUnsubscribe = onSnapshot(q, (snapshot) => {
         const events = [];
         snapshot.forEach(docSnap => {
-            if (docSnap.data().date === selectedDate) { // 只抓取你選的那天
+            if (docSnap.data().date === selectedDate) { 
                 let d = docSnap.data();
                 let [hours, minutes] = d.timeStr.split(':').map(Number);
                 d.totalMins = hours * 60 + minutes;
@@ -374,7 +371,6 @@ function renderJournal(events) {
     });
 }
 
-// 輸出圖片
 window.exportTimelineImage = async (event) => {
     const btn = event.target;
     const originalText = btn.innerText;
@@ -395,7 +391,6 @@ window.exportTimelineImage = async (event) => {
         });
 
         const link = document.createElement('a');
-        // 🌟 存圖檔名會顯示你選的那天
         link.download = `我的日子_${document.getElementById('journalDate').value}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
@@ -710,7 +705,6 @@ window.fetchHistoryByDate = async () => {
     });
     document.getElementById('historyMedList').innerHTML = medHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無吃藥記錄</div>';
 
-    // 🌟 也在月曆加入查詢日子的紀錄
     const qJournal = query(collection(db, "journal_logs"), where("uid", "==", auth.currentUser.uid));
     const snapJournal = await getDocs(qJournal).catch(e => { return {forEach:()=>{}}; });
     let journalHtml = ''; const journalDocs = [];
@@ -834,19 +828,11 @@ window.appendDiet = (text) => {
     else { input.value = text; }
 };
 
+// 🌟 移除自動標籤功能
 window.saveDiet = async () => {
     let mealVal = document.getElementById('dietInput').value.trim();
     if(!mealVal) { alert("請輸入飲食內容！"); return; }
     
-    let h = new Date().getHours();
-    let timeLabel = "";
-    if (h >= 5 && h < 11) timeLabel = "[🥞早餐] ";
-    else if (h >= 11 && h < 16) timeLabel = "[🍱午餐] ";
-    else if (h >= 16 && h < 22) timeLabel = "[🍲晚餐] ";
-    else timeLabel = "[🍜宵夜] ";
-    
-    mealVal = timeLabel + mealVal;
-
     try {
         const btn = event.target; btn.innerText = "儲存中...";
         await addDoc(collection(db, "diet_logs"), { meal: mealVal, tag: window.currentDietTag, date: getTodayString(), timestamp: Timestamp.now(), uid: auth.currentUser.uid });
@@ -854,8 +840,8 @@ window.saveDiet = async () => {
         document.getElementById('dietInput').value = ''; 
         window.toggleDietTag(''); 
         window.loadDietData(); 
-        btn.innerText = "儲存飲食 (自動加時間標籤)";
-    } catch (e) { alert("儲存失敗"); event.target.innerText = "儲存飲食 (自動加時間標籤)"; }
+        btn.innerText = "儲存飲食";
+    } catch (e) { alert("儲存失敗"); event.target.innerText = "儲存飲食"; }
 };
 
 window.deleteDiet = async (id) => {
