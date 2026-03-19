@@ -429,8 +429,6 @@
   const db = getFirestore(app);
   const auth = getAuth(app);
 
-  window.currentUserId = null;
-
   window.currentDocs = [];
   let waterChartInstance = null; 
   let weightChartInstance = null; 
@@ -462,7 +460,8 @@
 
   const todayStr = getTodayString();
   document.getElementById('homeDateDisplay').innerText = new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'long' });
-  document.getElementById('journalDateDisplay').innerText = new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'long' });
+
+  // 🌟 這裡就是那個害你當機的壞掉程式碼，我已經徹底把它拔掉了！
 
   document.getElementById('journalDate').value = todayStr;
   document.getElementById('journalDate').max = todayStr;
@@ -472,16 +471,15 @@
 
   onAuthStateChanged(auth, (user) => {
       if (user) {
-          window.currentUserId = user.uid;
           document.getElementById('userStatusBar').style.display = 'block';
           document.getElementById('currentUserEmail').innerText = user.email;
           document.getElementById('loginPage').classList.remove('active'); 
           document.getElementById('bottomNav').style.display = 'flex'; 
+          
           window.switchTab('home'); 
           startWaterListener(); 
           window.loadJournalByDate(); 
       } else {
-          window.currentUserId = null;
           document.getElementById('userStatusBar').style.display = 'none';
           document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
           document.getElementById('loginPage').classList.add('active'); 
@@ -537,7 +535,8 @@
   };
 
   window.switchTab = (tabName) => {
-      if (!window.currentUserId) return; 
+      // 🌟 恢復最原本穩定正常的檢查機制
+      if (!auth.currentUser) return; 
       
       document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
@@ -553,7 +552,7 @@
   };
 
   async function updateStreak() {
-      const snap = await getDocs(query(collection(db, "water_logs"), where("uid", "==", window.currentUserId)));
+      const snap = await getDocs(query(collection(db, "water_logs"), where("uid", "==", auth.currentUser.uid)));
       const dailyTotals = {};
       snap.forEach(doc => {
           const data = doc.data();
@@ -592,7 +591,7 @@
 
   function startWaterListener() {
       if (waterListenerUnsubscribe) { waterListenerUnsubscribe(); } 
-      const qToday = query(collection(db, "water_logs"), where("uid", "==", window.currentUserId));
+      const qToday = query(collection(db, "water_logs"), where("uid", "==", auth.currentUser.uid));
       
       waterListenerUnsubscribe = onSnapshot(qToday, (snapshot) => {
           let total = 0; let html = ''; const docs = [];
@@ -650,7 +649,7 @@
               text: text, 
               date: targetDate, 
               timestamp: Timestamp.now(), 
-              uid: window.currentUserId 
+              uid: auth.currentUser.uid 
           });
           document.getElementById('journalText').value = '';
           btn.innerText = "➕ 新增紀錄";
@@ -671,7 +670,7 @@
       if (!selectedDate) return;
 
       if (journalListenerUnsubscribe) { journalListenerUnsubscribe(); }
-      const q = query(collection(db, "journal_logs"), where("uid", "==", window.currentUserId));
+      const q = query(collection(db, "journal_logs"), where("uid", "==", auth.currentUser.uid));
       
       journalListenerUnsubscribe = onSnapshot(q, (snapshot) => {
           const events = [];
@@ -825,7 +824,7 @@
   };
 
   window.addWater = async (amount, itemName = '') => {
-      try { await addDoc(collection(db, "water_logs"), { amount, itemName, date: getTodayString(), timestamp: Timestamp.now(), uid: window.currentUserId }); } 
+      try { await addDoc(collection(db, "water_logs"), { amount, itemName, date: getTodayString(), timestamp: Timestamp.now(), uid: auth.currentUser.uid }); } 
       catch (e) { console.error(e); }
   };
   window.customInput = () => {
@@ -1037,7 +1036,7 @@
       const selectedDate = document.getElementById('historyDate').value;
       if (!selectedDate) return;
 
-      const qWater = query(collection(db, "water_logs"), where("uid", "==", window.currentUserId));
+      const qWater = query(collection(db, "water_logs"), where("uid", "==", auth.currentUser.uid));
       const snapWater = await getDocs(qWater).catch(e => { return {forEach:()=>{}}; });
       let waterTotal = 0; let waterHtml = ''; const waterDocs = [];
       snapWater.forEach((docSnap) => { 
@@ -1056,7 +1055,7 @@
       document.getElementById('historyTotal').innerText = `${waterTotal} ml`;
       document.getElementById('historyLogList').innerHTML = waterHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無喝水記錄</div>';
 
-      const qWeight = query(collection(db, "weight_logs"), where("uid", "==", window.currentUserId));
+      const qWeight = query(collection(db, "weight_logs"), where("uid", "==", auth.currentUser.uid));
       const snapWeight = await getDocs(qWeight).catch(e => { return {forEach:()=>{}}; });
       let allWeightDocs = [];
       snapWeight.forEach((docSnap) => { allWeightDocs.push(docSnap.data()); });
@@ -1085,7 +1084,7 @@
       });
       document.getElementById('historyWeightList').innerHTML = weightHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無體重記錄</div>';
 
-      const qDiet = query(collection(db, "diet_logs"), where("uid", "==", window.currentUserId));
+      const qDiet = query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid));
       const snapDiet = await getDocs(qDiet).catch(e => { return {forEach:()=>{}}; });
       let dietHtml = ''; const dietDocs = [];
       snapDiet.forEach((docSnap) => { 
@@ -1105,7 +1104,7 @@
       });
       document.getElementById('historyDietList').innerHTML = dietHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無飲食記錄</div>';
 
-      const qMed = query(collection(db, "med_logs"), where("uid", "==", window.currentUserId));
+      const qMed = query(collection(db, "med_logs"), where("uid", "==", auth.currentUser.uid));
       const snapMed = await getDocs(qMed).catch(e => { return {forEach:()=>{}}; });
       let medHtml = ''; const medDocs = [];
       snapMed.forEach((docSnap) => { 
@@ -1124,7 +1123,7 @@
       });
       document.getElementById('historyMedList').innerHTML = medHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無吃藥記錄</div>';
 
-      const qJournal = query(collection(db, "journal_logs"), where("uid", "==", window.currentUserId));
+      const qJournal = query(collection(db, "journal_logs"), where("uid", "==", auth.currentUser.uid));
       const snapJournal = await getDocs(qJournal).catch(e => { return {forEach:()=>{}}; });
       let journalHtml = ''; const journalDocs = [];
       snapJournal.forEach((docSnap) => { 
@@ -1146,7 +1145,7 @@
   async function loadMonthlyChart() {
       const date = new Date(); const year = date.getFullYear(); let month = date.getMonth() + 1; month = month < 10 ? '0' + month : month;
       const startDate = `${year}-${month}-01`; const endDate = `${year}-${month}-31`;
-      const qMonth = query(collection(db, "water_logs"), where("uid", "==", window.currentUserId));
+      const qMonth = query(collection(db, "water_logs"), where("uid", "==", auth.currentUser.uid));
       const querySnapshot = await getDocs(qMonth).catch(e => { return {forEach:()=>{}}; });
       const dailyTotals = {};
       querySnapshot.forEach((docSnap) => {
@@ -1172,7 +1171,7 @@
       if(!weightVal || weightVal <= 0) { alert("請輸入有效的體重數字！"); return; }
       try {
           const btn = event.target; btn.innerText = "儲存中...";
-          await addDoc(collection(db, "weight_logs"), { weight: parseFloat(weightVal), date: getTodayString(), timestamp: Timestamp.now(), uid: window.currentUserId });
+          await addDoc(collection(db, "weight_logs"), { weight: parseFloat(weightVal), date: getTodayString(), timestamp: Timestamp.now(), uid: auth.currentUser.uid });
           document.getElementById('weightInput').value = ''; window.loadWeightData(); btn.innerText = "儲存體重";
       } catch (e) { alert("儲存失敗"); event.target.innerText = "儲存體重"; }
   };
@@ -1180,7 +1179,7 @@
       if(confirm("確定要刪除這筆體重記錄嗎？")) { await deleteDoc(doc(db, "weight_logs", id)); window.loadWeightData(); }
   };
   window.loadWeightData = async () => {
-      const querySnapshot = await getDocs(query(collection(db, "weight_logs"), where("uid", "==", window.currentUserId))).catch(e => { return {forEach:()=>{}}; });
+      const querySnapshot = await getDocs(query(collection(db, "weight_logs"), where("uid", "==", auth.currentUser.uid))).catch(e => { return {forEach:()=>{}}; });
       const logs = []; querySnapshot.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
       logs.sort((a, b) => b.timestamp - a.timestamp); 
       
@@ -1253,7 +1252,7 @@
       
       try {
           const btn = event.target; btn.innerText = "儲存中...";
-          await addDoc(collection(db, "diet_logs"), { meal: mealVal, tag: window.currentDietTag, date: getTodayString(), timestamp: Timestamp.now(), uid: window.currentUserId });
+          await addDoc(collection(db, "diet_logs"), { meal: mealVal, tag: window.currentDietTag, date: getTodayString(), timestamp: Timestamp.now(), uid: auth.currentUser.uid });
           
           document.getElementById('dietInput').value = ''; 
           window.toggleDietTag(''); 
@@ -1267,7 +1266,7 @@
   };
 
   window.loadDietData = async () => {
-      const querySnapshot = await getDocs(query(collection(db, "diet_logs"), where("uid", "==", window.currentUserId))).catch(e => { return {forEach:()=>{}}; });
+      const querySnapshot = await getDocs(query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid))).catch(e => { return {forEach:()=>{}}; });
       const logs = []; querySnapshot.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
       logs.sort((a, b) => b.timestamp - a.timestamp); 
       let html = '';
@@ -1299,7 +1298,7 @@
       if(!medVal) { alert("請輸入藥物或保健品名稱！"); return; }
       try {
           const btn = event.target; btn.innerText = "儲存中...";
-          await addDoc(collection(db, "med_logs"), { med: medVal, date: getTodayString(), timestamp: Timestamp.now(), uid: window.currentUserId });
+          await addDoc(collection(db, "med_logs"), { med: medVal, date: getTodayString(), timestamp: Timestamp.now(), uid: auth.currentUser.uid });
           document.getElementById('medInput').value = ''; 
           window.loadMedData(); 
           btn.innerText = "儲存用藥";
@@ -1311,7 +1310,7 @@
   };
 
   window.loadMedData = async () => {
-      const querySnapshot = await getDocs(query(collection(db, "med_logs"), where("uid", "==", window.currentUserId))).catch(e => { return {forEach:()=>{}}; });
+      const querySnapshot = await getDocs(query(collection(db, "med_logs"), where("uid", "==", auth.currentUser.uid))).catch(e => { return {forEach:()=>{}}; });
       const logs = []; querySnapshot.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
       logs.sort((a, b) => b.timestamp - a.timestamp); 
       let html = '';
@@ -1338,7 +1337,7 @@
       resultEl.style.animation = "bounce 0.5s infinite alternate";
       
       try {
-          const q = query(collection(db, "diet_logs"), where("uid", "==", window.currentUserId));
+          const q = query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid));
           const snap = await getDocs(q);
           let foods = [];
           snap.forEach(doc => {
@@ -1412,26 +1411,26 @@
           if(window.retroType === 'water') {
               const val = parseInt(document.getElementById('retroWater').value, 10);
               if(isNaN(val) || val <= 0) throw new Error("請輸入有效水量");
-              await addDoc(collection(db, "water_logs"), { amount: val, itemName: '📅 補登記錄', date: rDate, timestamp: retroTimestamp, uid: window.currentUserId });
+              await addDoc(collection(db, "water_logs"), { amount: val, itemName: '📅 補登記錄', date: rDate, timestamp: retroTimestamp, uid: auth.currentUser.uid });
               updateStreak();
           } 
           else if (window.retroType === 'weight') {
               const val = parseFloat(document.getElementById('retroWeight').value);
               if(isNaN(val) || val <= 0) throw new Error("請輸入有效體重");
-              await addDoc(collection(db, "weight_logs"), { weight: val, date: rDate, timestamp: retroTimestamp, uid: window.currentUserId });
+              await addDoc(collection(db, "weight_logs"), { weight: val, date: rDate, timestamp: retroTimestamp, uid: auth.currentUser.uid });
               window.loadWeightData();
           } 
           else if (window.retroType === 'diet') {
               const val = document.getElementById('retroDiet').value.trim();
               const tagVal = document.getElementById('retroDietTag').value; 
               if(!val) throw new Error("請輸入飲食內容");
-              await addDoc(collection(db, "diet_logs"), { meal: val, tag: tagVal, date: rDate, timestamp: retroTimestamp, uid: window.currentUserId });
+              await addDoc(collection(db, "diet_logs"), { meal: val, tag: tagVal, date: rDate, timestamp: retroTimestamp, uid: auth.currentUser.uid });
               window.loadDietData();
           }
           else if (window.retroType === 'med') {
               const val = document.getElementById('retroMed').value.trim();
               if(!val) throw new Error("請輸入藥物名稱");
-              await addDoc(collection(db, "med_logs"), { med: val, date: rDate, timestamp: retroTimestamp, uid: window.currentUserId });
+              await addDoc(collection(db, "med_logs"), { med: val, date: rDate, timestamp: retroTimestamp, uid: auth.currentUser.uid });
               window.loadMedData();
           }
           alert("✅ 補登成功！請至「月曆」分頁查詢。");
@@ -1447,19 +1446,19 @@
       
       try {
           let allData = [];
-          const waterSnap = await getDocs(query(collection(db, "water_logs"), where("uid", "==", window.currentUserId)));
+          const waterSnap = await getDocs(query(collection(db, "water_logs"), where("uid", "==", auth.currentUser.uid)));
           waterSnap.forEach(d => { let obj=d.data(); obj.type="💧 喝水"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
           
-          const weightSnap = await getDocs(query(collection(db, "weight_logs"), where("uid", "==", window.currentUserId)));
+          const weightSnap = await getDocs(query(collection(db, "weight_logs"), where("uid", "==", auth.currentUser.uid)));
           weightSnap.forEach(d => { let obj=d.data(); obj.type="⚖️ 體重"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
           
-          const dietSnap = await getDocs(query(collection(db, "diet_logs"), where("uid", "==", window.currentUserId)));
+          const dietSnap = await getDocs(query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid)));
           dietSnap.forEach(d => { let obj=d.data(); obj.type="🍱 飲食"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
           
-          const medSnap = await getDocs(query(collection(db, "med_logs"), where("uid", "==", window.currentUserId)));
+          const medSnap = await getDocs(query(collection(db, "med_logs"), where("uid", "==", auth.currentUser.uid)));
           medSnap.forEach(d => { let obj=d.data(); obj.type="💊 吃藥"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
 
-          const journalSnap = await getDocs(query(collection(db, "journal_logs"), where("uid", "==", window.currentUserId)));
+          const journalSnap = await getDocs(query(collection(db, "journal_logs"), where("uid", "==", auth.currentUser.uid)));
           journalSnap.forEach(d => { let obj=d.data(); obj.type="📝 日子"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
           
           allData.sort((a,b) => b.ts - a.ts); 
