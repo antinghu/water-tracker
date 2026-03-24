@@ -1574,19 +1574,25 @@
       
       results.sort((a, b) => b.timestamp - a.timestamp);
       
-      let html = '';
+            let html = '';
       results.forEach(data => {
-          let timeStr = '--:--';
+          let displayDateStr = `${data.date} --:--`;
           if (data.timestamp) {
-              const dateObj = data.timestamp.toDate();
-              timeStr = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
+              const d = data.timestamp.toDate();
+              const m = d.getMonth() + 1;
+              const day = d.getDate();
+              const dow = dayNames[d.getDay()];
+              const hh = d.getHours().toString().padStart(2, '0');
+              const mm = d.getMinutes().toString().padStart(2, '0');
+              displayDateStr = `${m}/${day} ${dow} ${hh}:${mm}`;
           }
           let tagDisplay = data.tag ? `<span style="margin-right: 5px;">${data.tag}</span>` : '';
           html += `<div class="log-item" style="flex-wrap: wrap;">
-                      <span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${data.date} ${timeStr}</span>
+                      <span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${displayDateStr}</span>
                       <span style="color: var(--text-dark); font-weight:bold; white-space: pre-wrap; word-break: break-all;">${tagDisplay}${data.meal}</span>
                    </div>`;
       });
+
       
       resultContainer.innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">找不到相關的飲食紀錄喔。</div>';
   };
