@@ -819,19 +819,9 @@
       const labels = Object.keys(categoryData);
       const dataValues = labels.map(key => categoryData[key]);
       
-      const colorPalette = ['#a78bfa', '#f472b6', '#fbbf24', '#9ca3af', '#34d399', '#fb923c', '#60a5fa', '#f87171', '#38bdf8', '#c084fc', '#818cf8', '#a3e635'];
+            // 🌟 終極無限不重複魔法：利用黃金角 (137.5度) 自動生成對比強烈的專屬顏色
       const bgColors = labels.map((label, index) => {
-          switch(label) {
-              case '娛樂': return '#a78bfa';
-              case '出門': return '#f472b6';
-              case '個人': return '#fbbf24';
-              case '家務': return '#9ca3af';
-              case '生產力': return '#34d399';
-              case '飲食': return '#fb923c';
-              case '社交': return '#60a5fa';
-              case '未分類': return '#cbd5e1';
-              default: return colorPalette[index % colorPalette.length]; 
-          }
+          return `hsl(${index * 137.5}, 70%, 60%)`; 
       });
 
       if (window.pieChartInstance) { window.pieChartInstance.destroy(); }
