@@ -103,7 +103,6 @@
         
         .gacha-result { font-size: 3.5rem; margin: 30px 0; font-weight: bold; color: var(--primary-dark); min-height: 80px; display: flex; align-items: center; justify-content: center; text-align: center; }
 
-        /* 🌟 日子分頁：專屬時間軸樣式 */
         .timeline-container { position: relative; width: 100%; min-height: 100px; padding-bottom: 30px; }
         .timeline-line { position: absolute; left: 55px; top: 0; bottom: 0; width: 3px; background-color: #fbcfe8; }
         .event { position: absolute; left: 0; right: 0; display: flex; align-items: flex-start; transition: all 0.3s ease; }
@@ -311,16 +310,10 @@
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <input type="time" id="journalTime" style="flex: 1;">
                 <select id="journalCategory" style="flex: 1;">
-                    <option value="個人">個人</option>
-                    <option value="飲食">飲食</option>
-                    <option value="生產力">生產力</option>
-                    <option value="娛樂">娛樂</option>
-                    <option value="社交">社交</option>
-                    <option value="家務">家務</option>
-                    <option value="出門">出門</option>
-                    <option value="未分類">未分類</option>
-                </select>
+                    </select>
+                <button class="btn btn-custom" style="flex: 0 0 40px; padding: 0; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;" onclick="manageJournalCategories()">⚙️</button>
             </div>
+            
             <input type="text" id="journalText" placeholder="輸入事項內容 (例如：洗澡)..." style="width: 100%; margin-bottom: 15px;">
             
             <div style="display: flex; gap: 10px;">
@@ -352,6 +345,16 @@
             <p class="date-subtitle">本月每日喝水量</p>
             <div class="chart-container"><canvas id="waterChart"></canvas></div>
         </div>
+        
+        <div class="card history-section">
+            <h3 style="margin-top:0; color: #f39c12;"><span style="font-size:1.2rem;">🔍</span> 搜尋飲食紀錄</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="text" id="dietSearchInput" placeholder="輸入想找的食物 (如：麥當勞)..." style="flex: 1;">
+                <button class="btn btn-add" style="flex: 0 0 80px; font-size: 0.9rem;" onclick="searchDiet()">搜尋</button>
+            </div>
+            <div id="dietSearchResultList"><div style="text-align:center; color:var(--text-light); padding:10px;">輸入關鍵字後點擊搜尋</div></div>
+        </div>
+        
         <div class="card history-section">
             <div class="date-picker-wrapper">
                 <label for="historyDate" style="font-weight:bold; color:var(--text-dark);">查詢指定日期：</label><br><br>
@@ -395,7 +398,6 @@
             <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">請選擇日期與輸入內容</p>
             
             <input type="date" id="retroDate" style="margin-bottom: 15px;">
-            
             <input type="number" id="retroWater" placeholder="輸入喝水量 (ml)" style="width: 100%; margin-bottom: 15px; display: none;">
             <input type="number" id="retroWeight" step="0.1" placeholder="輸入體重 (kg)" style="width: 100%; margin-bottom: 15px; display: none;">
             
@@ -636,6 +638,53 @@
       }, (error) => { console.error("Listener error:", error); });
   }
 
+  // 🌟 管理日子分類的功能
+  const defaultJournalCategories = ['個人', '飲食', '生產力', '娛樂', '社交', '家務', '出門', '未分類'];
+
+  window.renderJournalCategories = () => {
+      let cats = JSON.parse(localStorage.getItem('myJournalCats'));
+      if (!cats) {
+          cats = [...defaultJournalCategories];
+          localStorage.setItem('myJournalCats', JSON.stringify(cats));
+      }
+      const selectEl = document.getElementById('journalCategory');
+      if (selectEl) {
+          selectEl.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+      }
+  };
+
+  window.manageJournalCategories = () => {
+      let cats = JSON.parse(localStorage.getItem('myJournalCats')) || [...defaultJournalCategories];
+      let action = prompt("請選擇操作：\n1. 新增分類\n2. 刪除分類\n請輸入 1 或 2：");
+      if (action === '1') {
+          let newCat = prompt("請輸入新的分類名稱：");
+          if (newCat && newCat.trim() !== '') {
+              if (!cats.includes(newCat.trim())) {
+                  cats.push(newCat.trim());
+                  localStorage.setItem('myJournalCats', JSON.stringify(cats));
+                  window.renderJournalCategories();
+              } else {
+                  alert("這個分類已經存在囉！");
+              }
+          }
+      } else if (action === '2') {
+          if (cats.length === 0) { alert("沒有分類可以刪除！"); return; }
+          let promptText = "請輸入要刪除的「數字編號」：\n\n";
+          cats.forEach((c, index) => { promptText += `${index + 1}. ${c}\n`; });
+          let choice = prompt(promptText);
+          if (choice !== null && choice.trim() !== "") {
+              let idx = parseInt(choice, 10) - 1;
+              if (idx >= 0 && idx < cats.length) {
+                  if(confirm(`確定刪除「${cats[idx]}」嗎？`)) {
+                      cats.splice(idx, 1);
+                      localStorage.setItem('myJournalCats', JSON.stringify(cats));
+                      window.renderJournalCategories();
+                  }
+              } else { alert("⚠️ 找不到編號！"); }
+          }
+      }
+  };
+
   window.saveJournal = async () => {
       const timeStr = document.getElementById('journalTime').value;
       const category = document.getElementById('journalCategory').value;
@@ -733,7 +782,6 @@
 
           const deleteBtn = `<span class="hide-on-export" onclick="deleteJournal('${ev.id}')" style="cursor:pointer; flex-shrink: 0; color:#ff9e9e; font-size:1.1rem; margin-left:8px; display: flex; align-items: center;">✖</span>`;
 
-          // 🌟 從這裡拿掉了分類標籤的程式碼
           const eventHtml = `
               <div class="event" style="top: ${topPosition}px;">
                   <div class="time">${ev.timeStr}</div>
@@ -757,21 +805,22 @@
       top5Container.innerHTML = '';
       sortedEvents.forEach(ev => {
           const li = document.createElement('li');
-          // 🌟 還有這裡的排名清單分類也拿掉了
           li.innerHTML = `${ev.text} <span class="top5-time">${ev.duration} min</span>`;
           top5Container.appendChild(li);
       });
 
-      const categoryData = { "娛樂": 0, "出門": 0, "個人": 0, "家務": 0, "生產力": 0, "飲食": 0, "社交": 0, "未分類": 0 };
+      // 🌟 修改了圓餅圖顏色的邏輯，讓它可以適應你自訂的任何分類！
+      const categoryData = {};
       events.forEach(ev => {
           if (categoryData[ev.category] !== undefined) categoryData[ev.category] += ev.duration;
-          else categoryData["未分類"] += ev.duration;
+          else categoryData[ev.category] = ev.duration;
       });
 
-      const labels = Object.keys(categoryData).filter(key => categoryData[key] > 0);
+      const labels = Object.keys(categoryData);
       const dataValues = labels.map(key => categoryData[key]);
       
-      const bgColors = labels.map(label => {
+      const colorPalette = ['#a78bfa', '#f472b6', '#fbbf24', '#9ca3af', '#34d399', '#fb923c', '#60a5fa', '#f87171', '#38bdf8', '#c084fc', '#818cf8', '#a3e635'];
+      const bgColors = labels.map((label, index) => {
           switch(label) {
               case '娛樂': return '#a78bfa';
               case '出門': return '#f472b6';
@@ -780,7 +829,8 @@
               case '生產力': return '#34d399';
               case '飲食': return '#fb923c';
               case '社交': return '#60a5fa';
-              default: return '#cbd5e1'; 
+              case '未分類': return '#cbd5e1';
+              default: return colorPalette[index % colorPalette.length]; 
           }
       });
 
@@ -1035,6 +1085,7 @@
   window.renderCustomButtons();
   window.renderDietButtons();
   window.renderMedButtons();
+  window.renderJournalCategories(); // 🌟 啟動時自動畫出分類
 
   window.fetchHistoryByDate = async () => {
       const selectedDate = document.getElementById('historyDate').value;
@@ -1496,6 +1547,48 @@
           alert("匯出失敗，請確認網路連線。");
           btn.innerText = originalText;
       }
+  };
+
+  // 🌟 飲食搜尋功能
+  window.searchDiet = async () => {
+      const keyword = document.getElementById('dietSearchInput').value.trim();
+      const resultContainer = document.getElementById('dietSearchResultList');
+      
+      if (!keyword) {
+          resultContainer.innerHTML = '<div style="text-align:center; color:var(--text-light); padding:10px;">請先輸入關鍵字喔！</div>';
+          return;
+      }
+      
+      resultContainer.innerHTML = '<div style="text-align:center; color:#ccc; padding:10px;">搜尋中...</div>';
+      
+      const qDiet = query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid));
+      const snapDiet = await getDocs(qDiet).catch(e => { return {forEach:()=>{}}; });
+      
+      const results = [];
+      snapDiet.forEach(docSnap => {
+          const data = docSnap.data();
+          if (data.meal && data.meal.includes(keyword)) {
+              results.push(data);
+          }
+      });
+      
+      results.sort((a, b) => b.timestamp - a.timestamp);
+      
+      let html = '';
+      results.forEach(data => {
+          let timeStr = '--:--';
+          if (data.timestamp) {
+              const dateObj = data.timestamp.toDate();
+              timeStr = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
+          }
+          let tagDisplay = data.tag ? `<span style="margin-right: 5px;">${data.tag}</span>` : '';
+          html += `<div class="log-item" style="flex-wrap: wrap;">
+                      <span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${data.date} ${timeStr}</span>
+                      <span style="color: var(--text-dark); font-weight:bold; white-space: pre-wrap; word-break: break-all;">${tagDisplay}${data.meal}</span>
+                   </div>`;
+      });
+      
+      resultContainer.innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">找不到相關的飲食紀錄喔。</div>';
   };
 
 </script>
