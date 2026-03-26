@@ -114,10 +114,6 @@
             text-align: left;
             display: flex; align-items: flex-start;
         }
-        .category-tag { 
-            font-size: 0.7rem; background-color: #f3e8ff; color: #7e22ce; padding: 2px 6px; border-radius: 6px; margin-right: 8px; font-weight: bold; 
-            white-space: nowrap; flex-shrink: 0; margin-top: 2px;
-        }
         .duration { position: absolute; left: 63px; font-size: 0.7rem; color: #9ca3af; transform: translateY(-50%); z-index: 1; background-color: var(--white); padding: 2px 6px; border-radius: 6px; font-weight: bold;}
         .stats-container { margin-top: 20px; background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: left; }
         .stats-container h3 { color: #9d174d; margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; border-bottom: 2px dashed #fbcfe8; padding-bottom: 8px; }
@@ -421,7 +417,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, deleteDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   const firebaseConfig = {
@@ -436,6 +432,23 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
+
+  // 🌟 定義預設的分類，並初始化全域的 userSettings 物件
+  const defaultWaterBtns = [];
+  const defaultDietBtns = {
+      drinks: ['☕ 咖啡', '🍵 無糖茶', '🧋 手搖飲'],
+      meals: ['👩‍🍳 媽媽食物', '🍝 義大利麵', '🍛 燉飯', '🍜 拉麵', '🍣 壽司', '🍲 火鍋', '🐟 酸菜魚', '🍢 夜市'],
+      snacks: ['🍞 麵包', '🥚 蛋', '🍎 蘋果', '🍐 芭樂', '🍬 糖果', '🍪 餅乾']
+  };
+  const defaultMedBtns = ['感冒藥', '止痛藥', '胃藥', 'B群', '維他命C', '益生菌'];
+  const defaultJournalCats = ['個人', '飲食', '生產力', '娛樂', '社交', '家務', '出門', '未分類'];
+
+  window.userSettings = {
+      waterBtns: [...defaultWaterBtns],
+      dietBtns: JSON.parse(JSON.stringify(defaultDietBtns)),
+      medBtns: [...defaultMedBtns],
+      journalCats: [...defaultJournalCats]
+  };
 
   window.currentDocs = [];
   let waterChartInstance = null; 
@@ -475,6 +488,56 @@
   document.getElementById('historyDate').value = todayStr; 
   document.getElementById('historyDate').max = todayStr;   
 
+  // 🌟 從 Firebase 讀取專屬設定 (若無則無痛轉移原本手機裡的資料)
+  window.loadUserSettings = async () => {
+      if (!auth.currentUser) return;
+      try {
+          const docRef = doc(db, "user_settings", auth.currentUser.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+              const data = docSnap.data();
+              if(data.waterBtns) window.userSettings.waterBtns = data.waterBtns;
+              if(data.dietBtns) window.userSettings.dietBtns = data.dietBtns;
+              if(data.medBtns) window.userSettings.medBtns = data.medBtns;
+              if(data.journalCats) window.userSettings.journalCats = data.journalCats;
+          } else {
+              // 無痛轉移：把舊 localStorage 的資料抓出來存入雲端
+              const localWater = JSON.parse(localStorage.getItem('myCustomWaterBtns'));
+              if (localWater) window.userSettings.waterBtns = localWater;
+              
+              const localDiet = JSON.parse(localStorage.getItem('myDietBtns'));
+              if (localDiet) window.userSettings.dietBtns = localDiet;
+              
+              const localMed = JSON.parse(localStorage.getItem('myMedBtns'));
+              if (localMed) window.userSettings.medBtns = localMed;
+              
+              const localJournal = JSON.parse(localStorage.getItem('myJournalCats'));
+              if (localJournal) window.userSettings.journalCats = localJournal;
+              
+              await setDoc(docRef, window.userSettings);
+          }
+          // 讀取完畢後，讓所有按鈕重新渲染
+          window.renderCustomButtons();
+          window.renderDietButtons();
+          window.renderMedButtons();
+          window.renderJournalCategories();
+      } catch(e) { 
+          console.error("讀取設定失敗", e); 
+          window.renderCustomButtons();
+          window.renderDietButtons();
+          window.renderMedButtons();
+          window.renderJournalCategories();
+      }
+  };
+
+  // 🌟 將變更存回 Firebase
+  window.saveUserSettings = async () => {
+      if (!auth.currentUser) return;
+      try {
+          await setDoc(doc(db, "user_settings", auth.currentUser.uid), window.userSettings);
+      } catch(e) { console.error("儲存設定失敗", e); }
+  };
+
   onAuthStateChanged(auth, (user) => {
       if (user) {
           document.getElementById('userStatusBar').style.display = 'block';
@@ -485,6 +548,9 @@
           window.switchTab('home'); 
           startWaterListener(); 
           window.loadJournalByDate(); 
+          
+          // 🌟 登入成功後，立刻讀取雲端設定
+          window.loadUserSettings(); 
       } else {
           document.getElementById('userStatusBar').style.display = 'none';
           document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
@@ -638,15 +704,9 @@
       }, (error) => { console.error("Listener error:", error); });
   }
 
-  // 🌟 管理日子分類的功能
-  const defaultJournalCategories = ['個人', '飲食', '生產力', '娛樂', '社交', '家務', '出門', '未分類'];
-
+  // 🌟 管理日子分類功能 (改為操作 userSettings 物件)
   window.renderJournalCategories = () => {
-      let cats = JSON.parse(localStorage.getItem('myJournalCats'));
-      if (!cats) {
-          cats = [...defaultJournalCategories];
-          localStorage.setItem('myJournalCats', JSON.stringify(cats));
-      }
+      const cats = window.userSettings.journalCats;
       const selectEl = document.getElementById('journalCategory');
       if (selectEl) {
           selectEl.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -654,14 +714,14 @@
   };
 
   window.manageJournalCategories = () => {
-      let cats = JSON.parse(localStorage.getItem('myJournalCats')) || [...defaultJournalCategories];
+      let cats = window.userSettings.journalCats;
       let action = prompt("請選擇操作：\n1. 新增分類\n2. 刪除分類\n請輸入 1 或 2：");
       if (action === '1') {
           let newCat = prompt("請輸入新的分類名稱：");
           if (newCat && newCat.trim() !== '') {
               if (!cats.includes(newCat.trim())) {
                   cats.push(newCat.trim());
-                  localStorage.setItem('myJournalCats', JSON.stringify(cats));
+                  window.saveUserSettings(); // 寫入雲端
                   window.renderJournalCategories();
               } else {
                   alert("這個分類已經存在囉！");
@@ -677,7 +737,7 @@
               if (idx >= 0 && idx < cats.length) {
                   if(confirm(`確定刪除「${cats[idx]}」嗎？`)) {
                       cats.splice(idx, 1);
-                      localStorage.setItem('myJournalCats', JSON.stringify(cats));
+                      window.saveUserSettings(); // 寫入雲端
                       window.renderJournalCategories();
                   }
               } else { alert("⚠️ 找不到編號！"); }
@@ -809,7 +869,6 @@
           top5Container.appendChild(li);
       });
 
-      // 🌟 修改了圓餅圖顏色的邏輯，讓它可以適應你自訂的任何分類！
       const categoryData = {};
       events.forEach(ev => {
           if (categoryData[ev.category] !== undefined) categoryData[ev.category] += ev.duration;
@@ -819,7 +878,7 @@
       const labels = Object.keys(categoryData);
       const dataValues = labels.map(key => categoryData[key]);
       
-            // 🌟 終極無限不重複魔法：利用黃金角 (137.5度) 自動生成對比強烈的專屬顏色
+      // 🌟 終極無限不重複魔法
       const bgColors = labels.map((label, index) => {
           return `hsl(${index * 137.5}, 70%, 60%)`; 
       });
@@ -893,9 +952,10 @@
       } else alert("今天本來就沒有記錄喔！");
   };
 
+  // 🌟 管理自訂水杯功能 (改為操作 userSettings 物件)
   window.renderCustomButtons = () => {
       const container = document.getElementById('customBtnGroup');
-      const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
+      const buttons = window.userSettings.waterBtns;
       let html = '';
       buttons.forEach((btn) => {
           html += `<button class="btn btn-add-special" style="background-color: #ffe4e1;" onclick="addWater(${btn.amount}, '${btn.name}')">🌟 ${btn.name} ${btn.amount} ml</button>`;
@@ -909,13 +969,13 @@
       if (!amountStr || amountStr.trim() === "") return;
       let amount = parseInt(amountStr, 10);
       if (isNaN(amount) || amount <= 0) { alert("⚠️ 請輸入大於 0 的有效數字！"); return; }
-      const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
-      buttons.push({ name: name.trim(), amount: amount });
-      localStorage.setItem('myCustomWaterBtns', JSON.stringify(buttons));
+      
+      window.userSettings.waterBtns.push({ name: name.trim(), amount: amount });
+      window.saveUserSettings(); // 寫入雲端
       window.renderCustomButtons();
   };
   window.editCustomButton = () => {
-      const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
+      const buttons = window.userSettings.waterBtns;
       if (buttons.length === 0) { alert("目前沒有自訂按鈕可以編輯喔！"); return; }
       let promptText = "請輸入要編輯的按鈕「數字編號」：\n\n";
       buttons.forEach((btn, index) => { promptText += `${index + 1}. ${btn.name} (${btn.amount} ml)\n`; });
@@ -929,14 +989,15 @@
               if (!newAmount || newAmount.trim() === "") return;
               let amount = parseInt(newAmount, 10);
               if (isNaN(amount) || amount <= 0) { alert("⚠️ 請輸入大於 0 的有效數字！"); return; }
+              
               buttons[idx] = { name: newName.trim(), amount: amount };
-              localStorage.setItem('myCustomWaterBtns', JSON.stringify(buttons));
+              window.saveUserSettings(); // 寫入雲端
               window.renderCustomButtons();
           } else { alert("⚠️ 找不到這個編號，請重新輸入！"); }
       }
   };
   window.deleteCustomButton = () => {
-      const buttons = JSON.parse(localStorage.getItem('myCustomWaterBtns') || '[]');
+      const buttons = window.userSettings.waterBtns;
       if (buttons.length === 0) { alert("目前沒有自訂按鈕可以刪除喔！"); return; }
       let promptText = "請輸入要刪除的按鈕「數字編號」：\n\n";
       buttons.forEach((btn, index) => { promptText += `${index + 1}. ${btn.name} (${btn.amount} ml)\n`; });
@@ -946,26 +1007,16 @@
           if (idx >= 0 && idx < buttons.length) {
               if(confirm(`確定要刪除「${buttons[idx].name}」嗎？`)) {
                   buttons.splice(idx, 1);
-                  localStorage.setItem('myCustomWaterBtns', JSON.stringify(buttons));
+                  window.saveUserSettings(); // 寫入雲端
                   window.renderCustomButtons();
               }
           } else { alert("⚠️ 找不到這個編號，請重新輸入！"); }
       }
   };
 
-  const defaultDietBtns = {
-      drinks: ['☕ 咖啡', '🍵 無糖茶', '🧋 手搖飲'],
-      meals: ['👩‍🍳 媽媽食物', '🍝 義大利麵', '🍛 燉飯', '🍜 拉麵', '🍣 壽司', '🍲 火鍋', '🐟 酸菜魚', '🍢 夜市'],
-      snacks: ['🍞 麵包', '🥚 蛋', '🍎 蘋果', '🍐 芭樂', '🍬 糖果', '🍪 餅乾']
-  };
-
+  // 🌟 管理自訂飲食分類功能 (改為操作 userSettings 物件)
   window.renderDietButtons = () => {
-      let btns = JSON.parse(localStorage.getItem('myDietBtns'));
-      if (!btns) {
-          btns = { ...defaultDietBtns };
-          localStorage.setItem('myDietBtns', JSON.stringify(btns));
-      }
-      
+      const btns = window.userSettings.dietBtns;
       document.getElementById('dietDrinksBtnGroup').innerHTML = btns.drinks.map(b => `<button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('${b}')">${b}</button>`).join('');
       document.getElementById('dietMealsBtnGroup').innerHTML = btns.meals.map(b => `<button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('${b}')">${b}</button>`).join('');
       document.getElementById('dietSnacksBtnGroup').innerHTML = btns.snacks.map(b => `<button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('${b}')">${b}</button>`).join('');
@@ -974,13 +1025,12 @@
   window.addDietBtn = (cat) => {
       let name = prompt("請輸入新的食物名稱 (建議加上 Emoji，如：🍔 漢堡)：", "");
       if (!name || name.trim() === "") return;
-      let btns = JSON.parse(localStorage.getItem('myDietBtns'));
-      btns[cat].push(name.trim());
-      localStorage.setItem('myDietBtns', JSON.stringify(btns));
+      window.userSettings.dietBtns[cat].push(name.trim());
+      window.saveUserSettings(); // 寫入雲端
       window.renderDietButtons();
   };
   window.editDietBtn = (cat) => {
-      let btns = JSON.parse(localStorage.getItem('myDietBtns'));
+      let btns = window.userSettings.dietBtns;
       if (btns[cat].length === 0) { alert("沒有按鈕可以編輯！"); return; }
       let promptText = "請輸入要編輯的「數字編號」：\n\n";
       btns[cat].forEach((btn, index) => { promptText += `${index + 1}. ${btn}\n`; });
@@ -991,14 +1041,14 @@
               let newName = prompt("請輸入新的名稱：", btns[cat][idx]);
               if (newName !== null && newName.trim() !== "") {
                   btns[cat][idx] = newName.trim();
-                  localStorage.setItem('myDietBtns', JSON.stringify(btns));
+                  window.saveUserSettings(); // 寫入雲端
                   window.renderDietButtons();
               }
           } else { alert("⚠️ 找不到編號！"); }
       }
   };
   window.deleteDietBtn = (cat) => {
-      let btns = JSON.parse(localStorage.getItem('myDietBtns'));
+      let btns = window.userSettings.dietBtns;
       if (btns[cat].length === 0) { alert("沒有按鈕可以刪除！"); return; }
       let promptText = "請輸入要刪除的「數字編號」：\n\n";
       btns[cat].forEach((btn, index) => { promptText += `${index + 1}. ${btn}\n`; });
@@ -1008,20 +1058,17 @@
           if (idx >= 0 && idx < btns[cat].length) {
               if(confirm(`確定刪除「${btns[cat][idx]}」嗎？`)) {
                   btns[cat].splice(idx, 1);
-                  localStorage.setItem('myDietBtns', JSON.stringify(btns));
+                  window.saveUserSettings(); // 寫入雲端
                   window.renderDietButtons();
               }
           } else { alert("⚠️ 找不到編號！"); }
       }
   };
 
+  // 🌟 管理自訂吃藥按鈕功能 (改為操作 userSettings 物件)
   window.renderMedButtons = () => {
       const container = document.getElementById('medBtnGroup');
-      let buttons = JSON.parse(localStorage.getItem('myMedBtns'));
-      if (!buttons) {
-          buttons = ['感冒藥', '止痛藥', '胃藥', 'B群', '維他命C', '益生菌'];
-          localStorage.setItem('myMedBtns', JSON.stringify(buttons));
-      }
+      const buttons = window.userSettings.medBtns;
       let html = '';
       buttons.forEach((btn) => {
           html += `<button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendMed('${btn}')">${btn}</button>`;
@@ -1031,13 +1078,12 @@
   window.addMedButton = () => {
       let name = prompt("請輸入新的藥物/保健品名稱：", "");
       if (!name || name.trim() === "") return;
-      const buttons = JSON.parse(localStorage.getItem('myMedBtns') || '[]');
-      buttons.push(name.trim());
-      localStorage.setItem('myMedBtns', JSON.stringify(buttons));
+      window.userSettings.medBtns.push(name.trim());
+      window.saveUserSettings(); // 寫入雲端
       window.renderMedButtons();
   };
   window.editMedButton = () => {
-      const buttons = JSON.parse(localStorage.getItem('myMedBtns') || '[]');
+      const buttons = window.userSettings.medBtns;
       if (buttons.length === 0) { alert("沒有按鈕可以編輯！"); return; }
       let promptText = "請輸入要編輯的「數字編號」：\n\n";
       buttons.forEach((btn, index) => { promptText += `${index + 1}. ${btn}\n`; });
@@ -1048,14 +1094,14 @@
               let newName = prompt("請輸入新的名稱：", buttons[idx]);
               if (newName !== null && newName.trim() !== "") {
                   buttons[idx] = newName.trim();
-                  localStorage.setItem('myMedBtns', JSON.stringify(buttons));
+                  window.saveUserSettings(); // 寫入雲端
                   window.renderMedButtons();
               }
           } else { alert("⚠️ 找不到編號！"); }
       }
   };
   window.deleteMedButton = () => {
-      const buttons = JSON.parse(localStorage.getItem('myMedBtns') || '[]');
+      const buttons = window.userSettings.medBtns;
       if (buttons.length === 0) { alert("沒有按鈕可以刪除！"); return; }
       let promptText = "請輸入要刪除的「數字編號」：\n\n";
       buttons.forEach((btn, index) => { promptText += `${index + 1}. ${btn}\n`; });
@@ -1065,17 +1111,12 @@
           if (idx >= 0 && idx < buttons.length) {
               if(confirm(`確定刪除「${buttons[idx]}」嗎？`)) {
                   buttons.splice(idx, 1);
-                  localStorage.setItem('myMedBtns', JSON.stringify(buttons));
+                  window.saveUserSettings(); // 寫入雲端
                   window.renderMedButtons();
               }
           } else { alert("⚠️ 找不到編號！"); }
       }
   };
-
-  window.renderCustomButtons();
-  window.renderDietButtons();
-  window.renderMedButtons();
-  window.renderJournalCategories(); // 🌟 啟動時自動畫出分類
 
   window.fetchHistoryByDate = async () => {
       const selectedDate = document.getElementById('historyDate').value;
@@ -1539,7 +1580,6 @@
       }
   };
 
-  // 🌟 飲食搜尋功能
   window.searchDiet = async () => {
       const keyword = document.getElementById('dietSearchInput').value.trim();
       const resultContainer = document.getElementById('dietSearchResultList');
@@ -1564,7 +1604,7 @@
       
       results.sort((a, b) => b.timestamp - a.timestamp);
       
-            let html = '';
+      let html = '';
       results.forEach(data => {
           let displayDateStr = `${data.date} --:--`;
           if (data.timestamp) {
@@ -1582,7 +1622,6 @@
                       <span style="color: var(--text-dark); font-weight:bold; white-space: pre-wrap; word-break: break-all;">${tagDisplay}${data.meal}</span>
                    </div>`;
       });
-
       
       resultContainer.innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">找不到相關的飲食紀錄喔。</div>';
   };
