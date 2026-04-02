@@ -96,10 +96,6 @@
             animation: bounce 1.5s infinite alternate;
         }
         @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-4px); } }
-
-        .tag-btn { border: 2px solid #e0e0e0; background: var(--white); color: var(--text-light); transition: 0.2s; padding: 10px; font-size: 1.8rem; display: flex; align-items: center; justify-content: center; }
-        .tag-btn.active-angel { border-color: #27ae60; background: #e8f8f5; }
-        .tag-btn.active-devil { border-color: #c0392b; background: #fdedec; }
         
         .gacha-result { font-size: 3.5rem; margin: 30px 0; font-weight: bold; color: var(--primary-dark); min-height: 80px; display: flex; align-items: center; justify-content: center; text-align: center; }
 
@@ -224,11 +220,6 @@
         <div class="card">
             <h1>🍱 飲食記錄</h1>
             
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <button id="btnTagAngel" class="btn tag-btn" style="flex:1;" onclick="toggleDietTag('😇')">😇</button>
-                <button id="btnTagDevil" class="btn tag-btn" style="flex:1;" onclick="toggleDietTag('😈')">😈</button>
-            </div>
-
             <div style="text-align: left; margin-bottom: 8px; color: var(--text-dark); font-weight: bold; font-size: 0.95rem;">💧 飲品</div>
             <div class="btn-group" id="dietDrinksBtnGroup" style="margin-bottom: 10px;"></div>
             <div class="btn-group" style="margin-bottom: 20px;">
@@ -397,11 +388,6 @@
             <input type="number" id="retroWater" placeholder="輸入喝水量 (ml)" style="width: 100%; margin-bottom: 15px; display: none;">
             <input type="number" id="retroWeight" step="0.1" placeholder="輸入體重 (kg)" style="width: 100%; margin-bottom: 15px; display: none;">
             
-            <select id="retroDietTag" style="width: 100%; margin-bottom: 10px; display: none; padding: 12px; border-radius: 12px; border: 2px solid var(--secondary); background: var(--bg-color); outline: none;">
-                <option value="">(不加標籤)</option>
-                <option value="😇">😇</option>
-                <option value="😈">😈</option>
-            </select>
             <textarea id="retroDiet" placeholder="輸入補登的飲食內容..." rows="3" style="width: 100%; margin-bottom: 15px; resize: none; display: none;"></textarea>
             
             <input type="text" id="retroMed" placeholder="輸入藥物名稱..." style="width: 100%; margin-bottom: 15px; display: none;">
@@ -433,7 +419,6 @@
   const db = getFirestore(app);
   const auth = getAuth(app);
 
-  // 🌟 定義預設的分類，並初始化全域的 userSettings 物件
   const defaultWaterBtns = [];
   const defaultDietBtns = {
       drinks: ['☕ 咖啡', '🍵 無糖茶', '🧋 手搖飲'],
@@ -457,7 +442,6 @@
   let waterListenerUnsubscribe = null; 
   let journalListenerUnsubscribe = null; 
   let hasAchievedGoalToday = false;
-  window.currentDietTag = '';
 
   const dayNames = ['Sun.', 'Mon.', 'Tue.', 'Wed.', 'Thu.', 'Fri.', 'Sat.'];
 
@@ -488,7 +472,6 @@
   document.getElementById('historyDate').value = todayStr; 
   document.getElementById('historyDate').max = todayStr;   
 
-  // 🌟 從 Firebase 讀取專屬設定 (若無則無痛轉移原本手機裡的資料)
   window.loadUserSettings = async () => {
       if (!auth.currentUser) return;
       try {
@@ -501,7 +484,6 @@
               if(data.medBtns) window.userSettings.medBtns = data.medBtns;
               if(data.journalCats) window.userSettings.journalCats = data.journalCats;
           } else {
-              // 無痛轉移：把舊 localStorage 的資料抓出來存入雲端
               const localWater = JSON.parse(localStorage.getItem('myCustomWaterBtns'));
               if (localWater) window.userSettings.waterBtns = localWater;
               
@@ -516,7 +498,6 @@
               
               await setDoc(docRef, window.userSettings);
           }
-          // 讀取完畢後，讓所有按鈕重新渲染
           window.renderCustomButtons();
           window.renderDietButtons();
           window.renderMedButtons();
@@ -530,7 +511,6 @@
       }
   };
 
-  // 🌟 將變更存回 Firebase
   window.saveUserSettings = async () => {
       if (!auth.currentUser) return;
       try {
@@ -549,7 +529,6 @@
           startWaterListener(); 
           window.loadJournalByDate(); 
           
-          // 🌟 登入成功後，立刻讀取雲端設定
           window.loadUserSettings(); 
       } else {
           document.getElementById('userStatusBar').style.display = 'none';
@@ -704,7 +683,6 @@
       }, (error) => { console.error("Listener error:", error); });
   }
 
-  // 🌟 管理日子分類功能 (改為操作 userSettings 物件)
   window.renderJournalCategories = () => {
       const cats = window.userSettings.journalCats;
       const selectEl = document.getElementById('journalCategory');
@@ -721,7 +699,7 @@
           if (newCat && newCat.trim() !== '') {
               if (!cats.includes(newCat.trim())) {
                   cats.push(newCat.trim());
-                  window.saveUserSettings(); // 寫入雲端
+                  window.saveUserSettings(); 
                   window.renderJournalCategories();
               } else {
                   alert("這個分類已經存在囉！");
@@ -737,7 +715,7 @@
               if (idx >= 0 && idx < cats.length) {
                   if(confirm(`確定刪除「${cats[idx]}」嗎？`)) {
                       cats.splice(idx, 1);
-                      window.saveUserSettings(); // 寫入雲端
+                      window.saveUserSettings(); 
                       window.renderJournalCategories();
                   }
               } else { alert("⚠️ 找不到編號！"); }
@@ -878,7 +856,6 @@
       const labels = Object.keys(categoryData);
       const dataValues = labels.map(key => categoryData[key]);
       
-      // 🌟 終極無限不重複魔法
       const bgColors = labels.map((label, index) => {
           return `hsl(${index * 137.5}, 70%, 60%)`; 
       });
@@ -952,7 +929,6 @@
       } else alert("今天本來就沒有記錄喔！");
   };
 
-  // 🌟 管理自訂水杯功能 (改為操作 userSettings 物件)
   window.renderCustomButtons = () => {
       const container = document.getElementById('customBtnGroup');
       const buttons = window.userSettings.waterBtns;
@@ -971,7 +947,7 @@
       if (isNaN(amount) || amount <= 0) { alert("⚠️ 請輸入大於 0 的有效數字！"); return; }
       
       window.userSettings.waterBtns.push({ name: name.trim(), amount: amount });
-      window.saveUserSettings(); // 寫入雲端
+      window.saveUserSettings(); 
       window.renderCustomButtons();
   };
   window.editCustomButton = () => {
@@ -991,7 +967,7 @@
               if (isNaN(amount) || amount <= 0) { alert("⚠️ 請輸入大於 0 的有效數字！"); return; }
               
               buttons[idx] = { name: newName.trim(), amount: amount };
-              window.saveUserSettings(); // 寫入雲端
+              window.saveUserSettings(); 
               window.renderCustomButtons();
           } else { alert("⚠️ 找不到這個編號，請重新輸入！"); }
       }
@@ -1007,14 +983,13 @@
           if (idx >= 0 && idx < buttons.length) {
               if(confirm(`確定要刪除「${buttons[idx].name}」嗎？`)) {
                   buttons.splice(idx, 1);
-                  window.saveUserSettings(); // 寫入雲端
+                  window.saveUserSettings(); 
                   window.renderCustomButtons();
               }
           } else { alert("⚠️ 找不到這個編號，請重新輸入！"); }
       }
   };
 
-  // 🌟 管理自訂飲食分類功能 (改為操作 userSettings 物件)
   window.renderDietButtons = () => {
       const btns = window.userSettings.dietBtns;
       document.getElementById('dietDrinksBtnGroup').innerHTML = btns.drinks.map(b => `<button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendDiet('${b}')">${b}</button>`).join('');
@@ -1026,7 +1001,7 @@
       let name = prompt("請輸入新的食物名稱 (建議加上 Emoji，如：🍔 漢堡)：", "");
       if (!name || name.trim() === "") return;
       window.userSettings.dietBtns[cat].push(name.trim());
-      window.saveUserSettings(); // 寫入雲端
+      window.saveUserSettings(); 
       window.renderDietButtons();
   };
   window.editDietBtn = (cat) => {
@@ -1041,7 +1016,7 @@
               let newName = prompt("請輸入新的名稱：", btns[cat][idx]);
               if (newName !== null && newName.trim() !== "") {
                   btns[cat][idx] = newName.trim();
-                  window.saveUserSettings(); // 寫入雲端
+                  window.saveUserSettings(); 
                   window.renderDietButtons();
               }
           } else { alert("⚠️ 找不到編號！"); }
@@ -1058,14 +1033,13 @@
           if (idx >= 0 && idx < btns[cat].length) {
               if(confirm(`確定刪除「${btns[cat][idx]}」嗎？`)) {
                   btns[cat].splice(idx, 1);
-                  window.saveUserSettings(); // 寫入雲端
+                  window.saveUserSettings(); 
                   window.renderDietButtons();
               }
           } else { alert("⚠️ 找不到編號！"); }
       }
   };
 
-  // 🌟 管理自訂吃藥按鈕功能 (改為操作 userSettings 物件)
   window.renderMedButtons = () => {
       const container = document.getElementById('medBtnGroup');
       const buttons = window.userSettings.medBtns;
@@ -1079,7 +1053,7 @@
       let name = prompt("請輸入新的藥物/保健品名稱：", "");
       if (!name || name.trim() === "") return;
       window.userSettings.medBtns.push(name.trim());
-      window.saveUserSettings(); // 寫入雲端
+      window.saveUserSettings(); 
       window.renderMedButtons();
   };
   window.editMedButton = () => {
@@ -1094,7 +1068,7 @@
               let newName = prompt("請輸入新的名稱：", buttons[idx]);
               if (newName !== null && newName.trim() !== "") {
                   buttons[idx] = newName.trim();
-                  window.saveUserSettings(); // 寫入雲端
+                  window.saveUserSettings(); 
                   window.renderMedButtons();
               }
           } else { alert("⚠️ 找不到編號！"); }
@@ -1111,7 +1085,7 @@
           if (idx >= 0 && idx < buttons.length) {
               if(confirm(`確定刪除「${buttons[idx]}」嗎？`)) {
                   buttons.splice(idx, 1);
-                  window.saveUserSettings(); // 寫入雲端
+                  window.saveUserSettings(); 
                   window.renderMedButtons();
               }
           } else { alert("⚠️ 找不到編號！"); }
@@ -1307,25 +1281,6 @@
       });
   };
 
-  window.toggleDietTag = (tag) => {
-      if (window.currentDietTag === tag) {
-          window.currentDietTag = ''; 
-      } else {
-          window.currentDietTag = tag;
-      }
-      
-      const btnAngel = document.getElementById('btnTagAngel');
-      const btnDevil = document.getElementById('btnTagDevil');
-      
-      if (window.currentDietTag === '😇') {
-          btnAngel.classList.add('active-angel'); btnDevil.classList.remove('active-devil');
-      } else if (window.currentDietTag === '😈') {
-          btnDevil.classList.add('active-devil'); btnAngel.classList.remove('active-angel');
-      } else {
-          btnAngel.classList.remove('active-angel'); btnDevil.classList.remove('active-devil');
-      }
-  };
-
   window.appendDiet = (text) => {
       const input = document.getElementById('dietInput');
       if (input.value.trim() !== '') { input.value += ' + ' + text; } 
@@ -1338,10 +1293,9 @@
       
       try {
           const btn = event.target; btn.innerText = "儲存中...";
-          await addDoc(collection(db, "diet_logs"), { meal: mealVal, tag: window.currentDietTag, date: getTodayString(), timestamp: Timestamp.now(), uid: auth.currentUser.uid });
+          await addDoc(collection(db, "diet_logs"), { meal: mealVal, tag: '', date: getTodayString(), timestamp: Timestamp.now(), uid: auth.currentUser.uid });
           
           document.getElementById('dietInput').value = ''; 
-          window.toggleDietTag(''); 
           window.loadDietData(); 
           btn.innerText = "儲存飲食";
       } catch (e) { alert("儲存失敗"); event.target.innerText = "儲存飲食"; }
@@ -1362,11 +1316,10 @@
               const d = log.timestamp.toDate();
               timeStr = `${d.getMonth()+1}/${d.getDate()} ${dayNames[d.getDay()]} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
           }
-          let tagDisplay = log.tag ? `<span style="margin-right: 5px;">${log.tag}</span>` : '';
           
           html += `<div class="log-item" style="flex-wrap: wrap;">
                       <span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${timeStr}</span>
-                      <span style="color: var(--text-dark); font-weight:bold; flex: 1; white-space: pre-wrap; word-break: break-all;">${tagDisplay}${log.meal}</span>
+                      <span style="color: var(--text-dark); font-weight:bold; flex: 1; white-space: pre-wrap; word-break: break-all;">${log.meal}</span>
                       <button onclick="deleteDiet('${log.id}')" style="background:none; border:none; color:#ff9e9e; font-size:1.2rem; cursor:pointer; padding: 0 5px;">✖</button>
                    </div>`;
       });
@@ -1463,7 +1416,6 @@
       document.getElementById('retroWater').style.display = (type === 'water') ? 'block' : 'none';
       document.getElementById('retroWeight').style.display = (type === 'weight') ? 'block' : 'none';
       document.getElementById('retroDiet').style.display = (type === 'diet') ? 'block' : 'none';
-      document.getElementById('retroDietTag').style.display = (type === 'diet') ? 'block' : 'none'; 
       document.getElementById('retroMed').style.display = (type === 'med') ? 'block' : 'none'; 
       
       const title = document.getElementById('retroModalTitle');
@@ -1479,7 +1431,6 @@
       document.getElementById('retroWater').value = '';
       document.getElementById('retroWeight').value = '';
       document.getElementById('retroDiet').value = '';
-      document.getElementById('retroDietTag').value = '';
       document.getElementById('retroMed').value = '';
   };
 
@@ -1508,9 +1459,8 @@
           } 
           else if (window.retroType === 'diet') {
               const val = document.getElementById('retroDiet').value.trim();
-              const tagVal = document.getElementById('retroDietTag').value; 
               if(!val) throw new Error("請輸入飲食內容");
-              await addDoc(collection(db, "diet_logs"), { meal: val, tag: tagVal, date: rDate, timestamp: retroTimestamp, uid: auth.currentUser.uid });
+              await addDoc(collection(db, "diet_logs"), { meal: val, tag: '', date: rDate, timestamp: retroTimestamp, uid: auth.currentUser.uid });
               window.loadDietData();
           }
           else if (window.retroType === 'med') {
