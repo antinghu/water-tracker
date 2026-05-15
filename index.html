@@ -306,7 +306,7 @@
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <input type="time" id="journalTime" style="flex: 1;">
                 <select id="journalCategory" style="flex: 1;">
-                </select>
+                    </select>
                 <button class="btn btn-custom" style="flex: 0 0 40px; padding: 0; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;" onclick="manageJournalCategories()">⚙️</button>
             </div>
             
@@ -503,8 +503,8 @@
       { name: '初心者', threshold: 1, icon: '🌱' },
       { name: '冒險家', threshold: 10, icon: '🧭' },
       { name: '研究員', threshold: 30, icon: '🧪' },
-      { name: '精通者', threshold: 70, icon: '🎖️' },
-      { name: '掌控者', threshold: 150, icon: '👑' }
+      { name: '精通者', threshold: 60, icon: '🎖️' },
+      { name: '掌控者', threshold: 100, icon: '👑' }
   ];
 
   window.currentDocs = [];
@@ -590,26 +590,35 @@
           const count = window.userSettings.achievementCounts[cat] || 0;
           let currentRank = { name: '尚未解鎖', threshold: 0, icon: '❓' };
           let nextRankThreshold = rankConfig[0].threshold;
+          let displayRankName = '尚未解鎖';
+          let progressPercent = 0;
 
-          for (let i = rankConfig.length - 1; i >= 0; i--) {
-              if (count >= rankConfig[i].threshold) {
-                  currentRank = rankConfig[i];
-                  nextRankThreshold = (i + 1 < rankConfig.length) ? rankConfig[i+1].threshold : currentRank.threshold;
-                  break;
+          if (count >= rankConfig[rankConfig.length - 1].threshold) {
+              const maxThreshold = rankConfig[rankConfig.length - 1].threshold;
+              const rounds = Math.floor(count / maxThreshold);
+              const remainder = count % maxThreshold;
+              
+              currentRank = rankConfig[rankConfig.length - 1];
+              displayRankName = rounds > 1 ? `${currentRank.name}+${rounds}` : currentRank.name;
+              nextRankThreshold = (rounds + 1) * maxThreshold;
+              progressPercent = (remainder / maxThreshold) * 100;
+          } else {
+              for (let i = rankConfig.length - 1; i >= 0; i--) {
+                  if (count >= rankConfig[i].threshold) {
+                      currentRank = rankConfig[i];
+                      nextRankThreshold = (i + 1 < rankConfig.length) ? rankConfig[i+1].threshold : currentRank.threshold;
+                      break;
+                  }
+              }
+              displayRankName = currentRank.name;
+              const start = currentRank.threshold;
+              if (count >= start && nextRankThreshold > start) {
+                  progressPercent = ((count - start) / (nextRankThreshold - start)) * 100;
               }
           }
 
-          let progressPercent = 0;
-          if (count >= rankConfig[rankConfig.length - 1].threshold) {
-              progressPercent = 100;
-          } else {
-              const start = currentRank.threshold;
-              progressPercent = ((count - start) / (nextRankThreshold - start)) * 100;
-              if (progressPercent < 0) progressPercent = 0;
-          }
-
           document.getElementById(`achIcon-${cat}`).innerText = currentRank.icon;
-          document.getElementById(`achRankName-${cat}`).innerText = currentRank.name;
+          document.getElementById(`achRankName-${cat}`).innerText = displayRankName;
           document.getElementById(`achBar-${cat}`).style.width = `${progressPercent}%`;
           document.getElementById(`achText-${cat}`).innerText = `${count} / ${nextRankThreshold}`;
       });
