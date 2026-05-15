@@ -60,7 +60,7 @@
         
         input[type="date"], input[type="time"], input[type="text"], input[type="number"], input[type="email"], input[type="password"], textarea, select { 
             padding: 10px; border-radius: 12px; border: 2px solid var(--secondary); font-family: inherit; color: var(--text-dark); background: var(--bg-color); outline: none; box-sizing: border-box; 
-            max-width: 100%; min-width: 0;
+            width: 100%; max-width: 100%; min-width: 0;
             -webkit-appearance: none; appearance: none;
             font-size: 0.9rem;
         }
@@ -181,10 +181,6 @@
             <h1>💧 新增記錄</h1>
             <div class="progress-circle"><span class="current-ml" id="recordTotalAmount">0</span><span class="label">ml</span></div>
             
-            <div class="btn-group">
-                <button class="btn btn-add-special" onclick="addWater(473, 'Fellow')">Fellow 473 ml</button>
-                <button class="btn btn-add-special" onclick="addWater(700, '大象杯')">大象杯 700 ml</button>
-            </div>
             <div class="btn-group" id="customBtnGroup"></div>
             
             <div class="btn-group">
@@ -310,7 +306,7 @@
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <input type="time" id="journalTime" style="flex: 1;">
                 <select id="journalCategory" style="flex: 1;">
-                    </select>
+                </select>
                 <button class="btn btn-custom" style="flex: 0 0 40px; padding: 0; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;" onclick="manageJournalCategories()">⚙️</button>
             </div>
             
@@ -483,8 +479,10 @@
   const db = getFirestore(app);
   const auth = getAuth(app);
 
-  // 🌟 定義預設的分類與成就
-  const defaultWaterBtns = [];
+  const defaultWaterBtns = [
+      { name: 'Fellow', amount: 473 },
+      { name: '大象杯', amount: 700 }
+  ];
   const defaultDietBtns = {
       drinks: ['☕ 咖啡', '🍵 無糖茶', '🧋 手搖飲'],
       meals: ['👩‍🍳 媽媽食物', '🍝 義大利麵', '🍛 燉飯', '🍜 拉麵', '🍣 壽司', '🍲 火鍋', '🐟 酸菜魚', '🍢 夜市'],
@@ -498,10 +496,9 @@
       dietBtns: JSON.parse(JSON.stringify(defaultDietBtns)),
       medBtns: [...defaultMedBtns],
       journalCats: [...defaultJournalCats],
-      achievementCounts: { personal: 0, household: 0, growth: 0 } // 🌟 新集成就數據
+      achievementCounts: { personal: 0, household: 0, growth: 0 }
   };
 
-  // 🌟 成就等級配置
   const rankConfig = [
       { name: '初心者', threshold: 1, icon: '🌱' },
       { name: '冒險家', threshold: 10, icon: '🧭' },
@@ -540,10 +537,8 @@
 
   const todayStr = getTodayString();
   document.getElementById('homeDateDisplay').innerText = new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'long' });
-
   document.getElementById('journalDate').value = todayStr;
   document.getElementById('journalDate').max = todayStr;
-
   document.getElementById('historyDate').value = todayStr; 
   document.getElementById('historyDate').max = todayStr;   
 
@@ -560,31 +555,42 @@
               if(data.journalCats) window.userSettings.journalCats = data.journalCats;
               if(data.achievementCounts) window.userSettings.achievementCounts = data.achievementCounts;
           } else {
+              const localWater = JSON.parse(localStorage.getItem('myCustomWaterBtns'));
+              if (localWater) window.userSettings.waterBtns = localWater;
+              const localDiet = JSON.parse(localStorage.getItem('myDietBtns'));
+              if (localDiet) window.userSettings.dietBtns = localDiet;
+              const localMed = JSON.parse(localStorage.getItem('myMedBtns'));
+              if (localMed) window.userSettings.medBtns = localMed;
+              const localJournal = JSON.parse(localStorage.getItem('myJournalCats'));
+              if (localJournal) window.userSettings.journalCats = localJournal;
               await setDoc(docRef, window.userSettings);
           }
           window.renderCustomButtons();
           window.renderDietButtons();
           window.renderMedButtons();
           window.renderJournalCategories();
-          window.renderAchievements(); // 🌟 渲染成就
-      } catch(e) { console.error("讀取設定失敗", e); }
+          window.renderAchievements();
+      } catch(e) { 
+          console.error("讀取設定失敗", e); 
+          window.renderCustomButtons();
+          window.renderDietButtons();
+          window.renderMedButtons();
+          window.renderJournalCategories();
+      }
   };
 
   window.saveUserSettings = async () => {
       if (!auth.currentUser) return;
-      try {
-          await setDoc(doc(db, "user_settings", auth.currentUser.uid), window.userSettings);
-      } catch(e) { console.error("儲存設定失敗", e); }
+      try { await setDoc(doc(db, "user_settings", auth.currentUser.uid), window.userSettings); } 
+      catch(e) { console.error("儲存設定失敗", e); }
   };
 
-  // 🌟 成就渲染邏輯
   window.renderAchievements = () => {
       ['personal', 'household', 'growth'].forEach(cat => {
           const count = window.userSettings.achievementCounts[cat] || 0;
           let currentRank = { name: '尚未解鎖', threshold: 0, icon: '❓' };
           let nextRankThreshold = rankConfig[0].threshold;
 
-          // 決定當前等級
           for (let i = rankConfig.length - 1; i >= 0; i--) {
               if (count >= rankConfig[i].threshold) {
                   currentRank = rankConfig[i];
@@ -593,10 +599,9 @@
               }
           }
 
-          // 計算進度條比例 (從當前等級起跳)
           let progressPercent = 0;
           if (count >= rankConfig[rankConfig.length - 1].threshold) {
-              progressPercent = 100; // 已達最高級
+              progressPercent = 100;
           } else {
               const start = currentRank.threshold;
               progressPercent = ((count - start) / (nextRankThreshold - start)) * 100;
@@ -799,7 +804,7 @@
       const timelineEl = document.getElementById('timeline');
       timelineEl.innerHTML = '<div class="timeline-line"></div>'; 
       if (events.length === 0) {
-          timelineEl.innerHTML += '<div style="text-align:center; padding: 20px; color:#9ca3af;">這天沒有紀錄喔！</div>';
+          timelineEl.innerHTML += '<div style="text-align:center; padding: 20px; color:#9ca3af;">這天沒有紀錄喔！快來補登吧！</div>';
           document.getElementById('top5-container').innerHTML = '';
           if(window.pieChartInstance) window.pieChartInstance.destroy();
           return;
@@ -811,7 +816,7 @@
           if (index > 0 && prevTop !== null) {
               timelineEl.insertAdjacentHTML('beforeend', `<div class="duration" style="top: ${prevTop + (topPosition - prevTop) / 2}px;">${events[index-1].duration} min</div>`);
           }
-          timelineEl.insertAdjacentHTML('beforeend', `<div class="event" style="top: ${topPosition}px;"><div class="time">${ev.timeStr}</div><div class="dot"></div><div class="content"><span style="flex: 1; line-height: 1.4; word-break: break-all;">${ev.text}</span><span class="hide-on-export" onclick="deleteJournal('${ev.id}')" style="cursor:pointer; color:#ff9e9e; margin-left:8px;">✖</span></div></div>`);
+          timelineEl.insertAdjacentHTML('beforeend', `<div class="event" style="top: ${topPosition}px;"><div class="time">${ev.timeStr}</div><div class="dot"></div><div class="content"><span style="flex: 1; line-height: 1.4; word-break: break-all;">${ev.text}</span><span class="hide-on-export" onclick="deleteJournal('${ev.id}')" style="cursor:pointer; color:#ff9e9e; font-size:1.1rem; margin-left:8px; display: flex; align-items: center;">✖</span></div></div>`);
           lastTop = topPosition; prevTop = topPosition;
       });
       timelineEl.style.height = (lastTop + 100) + 'px';
@@ -824,7 +829,7 @@
       window.pieChartInstance = new Chart(document.getElementById('pieChart').getContext('2d'), {
           type: 'doughnut',
           data: { labels, datasets: [{ data: labels.map(l => categoryData[l]), backgroundColor: labels.map((_, i) => `hsl(${i * 137.5}, 70%, 60%)`), borderWidth: 2, borderColor: '#ffffff' }] },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { family: '-apple-system, sans-serif' } } } } }
       });
   }
 
@@ -851,8 +856,44 @@
       let name = prompt("請輸入水杯名稱："); let amount = prompt("容量 (ml)：");
       if (name && amount && !isNaN(amount)) { window.userSettings.waterBtns.push({ name, amount: parseInt(amount) }); window.saveUserSettings(); window.renderCustomButtons(); }
   };
-  window.editCustomButton = () => { /* 邏輯同前 */ };
-  window.deleteCustomButton = () => { /* 邏輯同前 */ };
+  window.editCustomButton = () => { 
+      const buttons = window.userSettings.waterBtns;
+      if (buttons.length === 0) { alert("目前沒有自訂按鈕可以編輯喔！"); return; }
+      let promptText = "請輸入要編輯的按鈕「數字編號」：\n\n";
+      buttons.forEach((btn, index) => { promptText += `${index + 1}. ${btn.name} (${btn.amount} ml)\n`; });
+      let choice = prompt(promptText);
+      if (choice !== null && choice.trim() !== "") {
+          let idx = parseInt(choice, 10) - 1;
+          if (idx >= 0 && idx < buttons.length) {
+              let newName = prompt("請輸入新的水杯名稱：", buttons[idx].name);
+              if (!newName || newName.trim() === "") return;
+              let newAmount = prompt(`請輸入「${newName}」的容量 (ml)：`, buttons[idx].amount);
+              if (!newAmount || newAmount.trim() === "") return;
+              let amount = parseInt(newAmount, 10);
+              if (isNaN(amount) || amount <= 0) { alert("⚠️ 請輸入大於 0 的有效數字！"); return; }
+              buttons[idx] = { name: newName.trim(), amount: amount };
+              window.saveUserSettings(); 
+              window.renderCustomButtons();
+          } else { alert("⚠️ 找不到這個編號，請重新輸入！"); }
+      }
+  };
+  window.deleteCustomButton = () => { 
+      const buttons = window.userSettings.waterBtns;
+      if (buttons.length === 0) { alert("目前沒有自訂按鈕可以刪除喔！"); return; }
+      let promptText = "請輸入要刪除的按鈕「數字編號」：\n\n";
+      buttons.forEach((btn, index) => { promptText += `${index + 1}. ${btn.name} (${btn.amount} ml)\n`; });
+      let choice = prompt(promptText);
+      if (choice !== null && choice.trim() !== "") {
+          let idx = parseInt(choice, 10) - 1;
+          if (idx >= 0 && idx < buttons.length) {
+              if(confirm(`確定要刪除「${buttons[idx].name}」嗎？`)) {
+                  buttons.splice(idx, 1);
+                  window.saveUserSettings(); 
+                  window.renderCustomButtons();
+              }
+          } else { alert("⚠️ 找不到這個編號，請重新輸入！"); }
+      }
+  };
 
   window.renderDietButtons = () => {
       const btns = window.userSettings.dietBtns;
@@ -861,15 +902,81 @@
       });
   };
   window.addDietBtn = (cat) => { let n = prompt("食物名稱："); if(n) { window.userSettings.dietBtns[cat].push(n); window.saveUserSettings(); window.renderDietButtons(); } };
-  window.editDietBtn = (cat) => { /* 邏輯同前 */ };
-  window.deleteDietBtn = (cat) => { /* 邏輯同前 */ };
+  window.editDietBtn = (cat) => { 
+      let btns = window.userSettings.dietBtns;
+      if (btns[cat].length === 0) { alert("沒有按鈕可以編輯！"); return; }
+      let promptText = "請輸入要編輯的「數字編號」：\n\n";
+      btns[cat].forEach((btn, index) => { promptText += `${index + 1}. ${btn}\n`; });
+      let choice = prompt(promptText);
+      if (choice !== null && choice.trim() !== "") {
+          let idx = parseInt(choice, 10) - 1;
+          if (idx >= 0 && idx < btns[cat].length) {
+              let newName = prompt("請輸入新的名稱：", btns[cat][idx]);
+              if (newName !== null && newName.trim() !== "") {
+                  btns[cat][idx] = newName.trim();
+                  window.saveUserSettings(); 
+                  window.renderDietButtons();
+              }
+          } else { alert("⚠️ 找不到編號！"); }
+      }
+  };
+  window.deleteDietBtn = (cat) => { 
+      let btns = window.userSettings.dietBtns;
+      if (btns[cat].length === 0) { alert("沒有按鈕可以刪除！"); return; }
+      let promptText = "請輸入要刪除的「數字編號」：\n\n";
+      btns[cat].forEach((btn, index) => { promptText += `${index + 1}. ${btn}\n`; });
+      let choice = prompt(promptText);
+      if (choice !== null && choice.trim() !== "") {
+          let idx = parseInt(choice, 10) - 1;
+          if (idx >= 0 && idx < btns[cat].length) {
+              if(confirm(`確定刪除「${btns[cat][idx]}」嗎？`)) {
+                  btns[cat].splice(idx, 1);
+                  window.saveUserSettings(); 
+                  window.renderDietButtons();
+              }
+          } else { alert("⚠️ 找不到編號！"); }
+      }
+  };
 
   window.renderMedButtons = () => {
       document.getElementById('medBtnGroup').innerHTML = window.userSettings.medBtns.map(b => `<button class="btn btn-add-special" style="flex: 1 1 30%; font-size: 0.85rem;" onclick="appendMed('${b}')">${b}</button>`).join('');
   };
   window.addMedButton = () => { let n = prompt("藥物名稱："); if(n) { window.userSettings.medBtns.push(n); window.saveUserSettings(); window.renderMedButtons(); } };
-  window.editMedButton = (cat) => { /* 邏輯同前 */ };
-  window.deleteMedButton = (cat) => { /* 邏輯同前 */ };
+  window.editMedButton = () => { 
+      const buttons = window.userSettings.medBtns;
+      if (buttons.length === 0) { alert("沒有按鈕可以編輯！"); return; }
+      let promptText = "請輸入要編輯的「數字編號」：\n\n";
+      buttons.forEach((btn, index) => { promptText += `${index + 1}. ${btn}\n`; });
+      let choice = prompt(promptText);
+      if (choice !== null && choice.trim() !== "") {
+          let idx = parseInt(choice, 10) - 1;
+          if (idx >= 0 && idx < buttons.length) {
+              let newName = prompt("請輸入新的名稱：", buttons[idx]);
+              if (newName !== null && newName.trim() !== "") {
+                  buttons[idx] = newName.trim();
+                  window.saveUserSettings(); 
+                  window.renderMedButtons();
+              }
+          } else { alert("⚠️ 找不到編號！"); }
+      }
+  };
+  window.deleteMedButton = () => { 
+      const buttons = window.userSettings.medBtns;
+      if (buttons.length === 0) { alert("沒有按鈕可以刪除！"); return; }
+      let promptText = "請輸入要刪除的「數字編號」：\n\n";
+      buttons.forEach((btn, index) => { promptText += `${index + 1}. ${btn}\n`; });
+      let choice = prompt(promptText);
+      if (choice !== null && choice.trim() !== "") {
+          let idx = parseInt(choice, 10) - 1;
+          if (idx >= 0 && idx < buttons.length) {
+              if(confirm(`確定刪除「${buttons[idx]}」嗎？`)) {
+                  buttons.splice(idx, 1);
+                  window.saveUserSettings(); 
+                  window.renderMedButtons();
+              }
+          } else { alert("⚠️ 找不到編號！"); }
+      }
+  };
 
   window.saveWeight = async () => {
       const v = document.getElementById('weightInput').value;
@@ -883,9 +990,19 @@
       document.getElementById('weightLogList').innerHTML = logs.slice(0, 10).map((l, i) => {
           let diff = (i+1 < logs.length) ? (l.weight - logs[i+1].weight).toFixed(1) : 0;
           let diffH = diff < 0 ? `<span style="color:#27ae60;">(⬇️ ${Math.abs(diff)}kg)</span>` : (diff > 0 ? `<span style="color:#c0392b;">(⬆️ ${diff}kg)</span>` : '');
-          return `<div class="log-item"><span>${l.date}</span><span style="font-weight:bold;">${l.weight} kg ${diffH}</span><button onclick="deleteWeight('${l.id}')" style="background:none; border:none; color:#ff9e9e;">✖</button></div>`;
+          return `<div class="log-item"><span>${l.date}</span><span style="font-weight:bold;">${l.weight} kg ${diffH}</span><button onclick="deleteWeight('${l.id}')" style="background:none; border:none; color:#ff9e9e; font-size:1.2rem; cursor:pointer;">✖</button></div>`;
       }).join('') || '<div style="text-align:center; padding:10px;">尚未有記錄</div>';
-      // 繪製圖表邏輯...
+      
+      const chartLogs = [...logs].reverse(); const dailyWeight = {};
+      chartLogs.forEach(log => { dailyWeight[log.date] = log.weight; });
+      const labels = Object.keys(dailyWeight).sort(); const dataPoints = labels.map(date => dailyWeight[date]);
+      const displayLabels = labels.map(d => { const parts = d.split('-'); return `${parts[1]}/${parts[2]}`; });
+      if (weightChartInstance) { weightChartInstance.destroy(); }
+      const ctx = document.getElementById('weightChart').getContext('2d');
+      weightChartInstance = new Chart(ctx, {
+          type: 'line', data: { labels: displayLabels.length > 0 ? displayLabels : ['尚未有記錄'], datasets: [{ label: '體重 (kg)', data: dataPoints.length > 0 ? dataPoints : [0], borderColor: '#ff6b8b', backgroundColor: 'rgba(255, 107, 139, 0.2)', borderWidth: 2, fill: true, tension: 0.3, pointBackgroundColor: '#ff6b8b', pointRadius: 4 }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
   };
 
   window.saveDiet = async () => {
@@ -896,7 +1013,14 @@
       const snap = await getDocs(query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid)));
       const logs = []; snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
       logs.sort((a, b) => b.timestamp - a.timestamp);
-      document.getElementById('dietLogList').innerHTML = logs.slice(0, 10).map(l => `<div class="log-item"><span>${l.date}</span><span style="font-weight:bold;">${l.meal}</span><button onclick="deleteDiet('${l.id}')" style="background:none; border:none; color:#ff9e9e;">✖</button></div>`).join('');
+      document.getElementById('dietLogList').innerHTML = logs.slice(0, 10).map(l => {
+          let timeStr = '--:--';
+          if (l.timestamp) {
+              const d = l.timestamp.toDate();
+              timeStr = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+          }
+          return `<div class="log-item" style="flex-wrap: wrap;"><span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${l.date} ${timeStr}</span><span style="font-weight:bold; flex: 1; white-space: pre-wrap; word-break: break-all;">${l.meal}</span><button onclick="deleteDiet('${l.id}')" style="background:none; border:none; color:#ff9e9e; font-size:1.2rem; cursor:pointer; padding: 0 5px;">✖</button></div>`;
+      }).join('') || '<div style="text-align:center; padding:10px;">尚未有記錄</div>';
   };
   window.deleteDiet = async (id) => { if(confirm("確定刪除？")) { await deleteDoc(doc(db, "diet_logs", id)); window.loadDietData(); } };
 
@@ -908,7 +1032,14 @@
       const snap = await getDocs(query(collection(db, "med_logs"), where("uid", "==", auth.currentUser.uid)));
       const logs = []; snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
       logs.sort((a, b) => b.timestamp - a.timestamp);
-      document.getElementById('medLogList').innerHTML = logs.slice(0, 10).map(l => `<div class="log-item"><span>${l.date}</span><span style="font-weight:bold;">${l.med}</span><button onclick="deleteMed('${l.id}')" style="background:none; border:none; color:#ff9e9e;">✖</button></div>`).join('');
+      document.getElementById('medLogList').innerHTML = logs.slice(0, 10).map(l => {
+          let timeStr = '--:--';
+          if (l.timestamp) {
+              const d = l.timestamp.toDate();
+              timeStr = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+          }
+          return `<div class="log-item" style="flex-wrap: wrap;"><span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${l.date} ${timeStr}</span><span style="font-weight:bold; flex: 1; white-space: pre-wrap; word-break: break-all;">${l.med}</span><button onclick="deleteMed('${l.id}')" style="background:none; border:none; color:#ff9e9e; font-size:1.2rem; cursor:pointer; padding: 0 5px;">✖</button></div>`;
+      }).join('') || '<div style="text-align:center; padding:10px;">尚未有記錄</div>';
   };
   window.deleteMed = async (id) => { if(confirm("確定刪除？")) { await deleteDoc(doc(db, "med_logs", id)); window.loadMedData(); } };
 
@@ -935,17 +1066,151 @@
       const found = []; snap.forEach(d => { if(d.data().meal.includes(kw)) found.push(d.data()); });
       found.sort((a, b) => b.timestamp - a.timestamp);
       res.innerHTML = found.map(d => {
-          let dateStr = d.date;
+          let dateStr = `${d.date} --:--`;
           if (d.timestamp) {
               const dObj = d.timestamp.toDate();
-              dateStr = `${dObj.getMonth()+1}/${dObj.getDate()} ${dayNames[dObj.getDay()]} ${dObj.getHours().toString().padStart(2,'0')}:${dObj.getMinutes().toString().padStart(2,'0')}`;
+              const m = dObj.getMonth() + 1;
+              const day = dObj.getDate();
+              const dow = dayNames[dObj.getDay()];
+              const hh = dObj.getHours().toString().padStart(2, '0');
+              const mm = dObj.getMinutes().toString().padStart(2, '0');
+              dateStr = `${m}/${day} ${dow} ${hh}:${mm}`;
           }
           return `<div class="log-item" style="flex-wrap: wrap;"><span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${dateStr}</span><span style="font-weight:bold;">${d.meal}</span></div>`;
-      }).join('') || "找不到記錄";
+      }).join('') || '<div style="text-align:center; padding:10px;">找不到記錄</div>';
   };
 
-  window.fetchHistoryByDate = async () => { /* 邏輯同前 */ };
-  window.loadMonthlyChart = async () => { /* 邏輯同前 */ };
+  window.fetchHistoryByDate = async () => {
+      const selectedDate = document.getElementById('historyDate').value;
+      if (!selectedDate) return;
+
+      const qWater = query(collection(db, "water_logs"), where("uid", "==", auth.currentUser.uid));
+      const snapWater = await getDocs(qWater).catch(e => { return {forEach:()=>{}}; });
+      let waterTotal = 0; let waterHtml = ''; const waterDocs = [];
+      snapWater.forEach((docSnap) => { 
+          if(docSnap.data().date === selectedDate) waterDocs.push(docSnap.data()); 
+      });
+      waterDocs.sort((a, b) => b.timestamp - a.timestamp).forEach((data) => {
+          waterTotal += data.amount;
+          let timeStr = '--:--';
+          if (data.timestamp) {
+              const dateObj = data.timestamp.toDate();
+              timeStr = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
+          }
+          waterHtml += `<div class="log-item"><div><span class="log-time">${timeStr}</span> <span class="log-name">${data.itemName || ''}</span></div><span style="color: var(--primary-dark); font-weight:bold;">${data.amount} ml</span></div>`;
+      });
+      document.getElementById('historyTotal').innerText = `${waterTotal} ml`;
+      document.getElementById('historyLogList').innerHTML = waterHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無喝水記錄</div>';
+
+      const qWeight = query(collection(db, "weight_logs"), where("uid", "==", auth.currentUser.uid));
+      const snapWeight = await getDocs(qWeight).catch(e => { return {forEach:()=>{}}; });
+      let allWeightDocs = [];
+      snapWeight.forEach((docSnap) => { allWeightDocs.push(docSnap.data()); });
+      allWeightDocs.sort((a, b) => b.timestamp - a.timestamp); 
+      
+      let weightHtml = '';
+      allWeightDocs.forEach((data, index) => {
+          if (data.date === selectedDate) { 
+              let timeStr = '--:--';
+              if (data.timestamp) {
+                  const dateObj = data.timestamp.toDate();
+                  timeStr = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
+              }
+              
+              let diffHtml = '';
+              if (index + 1 < allWeightDocs.length) {
+                  let prevLog = allWeightDocs[index + 1];
+                  let diff = parseFloat((data.weight - prevLog.weight).toFixed(1));
+                  if (diff < 0) diffHtml = `<span style="color: #27ae60; font-size: 0.7em; white-space: nowrap; margin-left: 5px;">(⬇️ ${Math.abs(diff)}kg)</span>`;
+                  else if (diff > 0) diffHtml = `<span style="color: #c0392b; font-size: 0.7em; white-space: nowrap; margin-left: 5px;">(⬆️ ${diff}kg)</span>`;
+                  else diffHtml = `<span style="color: var(--text-light); font-size: 0.7em; white-space: nowrap; margin-left: 5px;">(持平)</span>`;
+              }
+              
+              weightHtml += `<div class="log-item"><div><span class="log-time">${timeStr}</span></div><span style="color: #9b59b6; font-weight:bold;">${data.weight} kg ${diffHtml}</span></div>`;
+          }
+      });
+      document.getElementById('historyWeightList').innerHTML = weightHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無體重記錄</div>';
+
+      const qDiet = query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid));
+      const snapDiet = await getDocs(qDiet).catch(e => { return {forEach:()=>{}}; });
+      let dietHtml = ''; const dietDocs = [];
+      snapDiet.forEach((docSnap) => { 
+          if(docSnap.data().date === selectedDate) dietDocs.push(docSnap.data()); 
+      });
+      dietDocs.sort((a, b) => b.timestamp - a.timestamp).forEach((data) => {
+          let timeStr = '--:--';
+          if (data.timestamp) {
+              const dateObj = data.timestamp.toDate();
+              timeStr = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
+          }
+          dietHtml += `<div class="log-item" style="flex-wrap: wrap;">
+                          <span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${timeStr}</span>
+                          <span style="color: var(--text-dark); font-weight:bold; white-space: pre-wrap; word-break: break-all;">${data.meal}</span>
+                       </div>`;
+      });
+      document.getElementById('historyDietList').innerHTML = dietHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無飲食記錄</div>';
+
+      const qMed = query(collection(db, "med_logs"), where("uid", "==", auth.currentUser.uid));
+      const snapMed = await getDocs(qMed).catch(e => { return {forEach:()=>{}}; });
+      let medHtml = ''; const medDocs = [];
+      snapMed.forEach((docSnap) => { 
+          if(docSnap.data().date === selectedDate) medDocs.push(docSnap.data()); 
+      });
+      medDocs.sort((a, b) => b.timestamp - a.timestamp).forEach((data) => {
+          let timeStr = '--:--';
+          if (data.timestamp) {
+              const dateObj = data.timestamp.toDate();
+              timeStr = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
+          }
+          medHtml += `<div class="log-item" style="flex-wrap: wrap;">
+                          <span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${timeStr}</span>
+                          <span style="color: #8e44ad; font-weight:bold; white-space: pre-wrap; word-break: break-all;">${data.med}</span>
+                       </div>`;
+      });
+      document.getElementById('historyMedList').innerHTML = medHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無吃藥記錄</div>';
+
+      const qJournal = query(collection(db, "journal_logs"), where("uid", "==", auth.currentUser.uid));
+      const snapJournal = await getDocs(qJournal).catch(e => { return {forEach:()=>{}}; });
+      let journalHtml = ''; const journalDocs = [];
+      snapJournal.forEach((docSnap) => { 
+          if(docSnap.data().date === selectedDate) journalDocs.push(docSnap.data()); 
+      });
+      journalDocs.sort((a, b) => {
+          const aMins = parseInt(a.timeStr.split(':')[0])*60 + parseInt(a.timeStr.split(':')[1]);
+          const bMins = parseInt(b.timeStr.split(':')[0])*60 + parseInt(b.timeStr.split(':')[1]);
+          return bMins - aMins; 
+      }).forEach((data) => {
+          journalHtml += `<div class="log-item" style="flex-wrap: wrap;">
+                          <span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${data.timeStr}</span>
+                          <span style="color: #374151; font-weight:bold; flex: 1; white-space: pre-wrap; word-break: break-all;">[${data.category}] ${data.text}</span>
+                       </div>`;
+      });
+      document.getElementById('historyJournalList').innerHTML = journalHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無日子記錄</div>';
+  };
+
+  window.loadMonthlyChart = async () => {
+      const date = new Date(); const year = date.getFullYear(); let month = date.getMonth() + 1; month = month < 10 ? '0' + month : month;
+      const startDate = `${year}-${month}-01`; const endDate = `${year}-${month}-31`;
+      const qMonth = query(collection(db, "water_logs"), where("uid", "==", auth.currentUser.uid));
+      const querySnapshot = await getDocs(qMonth).catch(e => { return {forEach:()=>{}}; });
+      const dailyTotals = {};
+      querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.date >= startDate && data.date <= endDate) {
+              if (!dailyTotals[data.date]) dailyTotals[data.date] = 0;
+              dailyTotals[data.date] += data.amount;
+          }
+      });
+      const sortedDates = Object.keys(dailyTotals).sort();
+      const labels = sortedDates.map(d => { const parts = d.split('-'); return `${parts[1]}/${parts[2]}`; });
+      const dataPoints = sortedDates.map(d => dailyTotals[d]);
+      if (waterChartInstance) { waterChartInstance.destroy(); }
+      const ctx = document.getElementById('waterChart').getContext('2d');
+      waterChartInstance = new Chart(ctx, {
+          type: 'bar', data: { labels: labels.length > 0 ? labels : ['尚未有記錄'], datasets: [{ label: '每日喝水量 (ml)', data: dataPoints.length > 0 ? dataPoints : [0], backgroundColor: '#ffb6c1', borderColor: '#ff8da1', borderWidth: 1, borderRadius: 6 }] },
+          options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+      });
+  };
 
   window.openRetroModal = (type) => {
       window.retroType = type; document.getElementById('retroModal').classList.add('active');
@@ -967,7 +1232,60 @@
       } catch(e) { alert("儲存失敗"); } finally { btn.innerText = "確認補登"; }
   };
 
-  window.exportToCSV = async (event) => { /* 邏輯同前 */ };
+  window.exportToCSV = async (event) => {
+      const btn = event.target;
+      const originalText = btn.innerText;
+      btn.innerText = "📥 資料整理中...";
+      
+      try {
+          let allData = [];
+          const waterSnap = await getDocs(query(collection(db, "water_logs"), where("uid", "==", auth.currentUser.uid)));
+          waterSnap.forEach(d => { let obj=d.data(); obj.type="💧 喝水"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
+          
+          const weightSnap = await getDocs(query(collection(db, "weight_logs"), where("uid", "==", auth.currentUser.uid)));
+          weightSnap.forEach(d => { let obj=d.data(); obj.type="⚖️ 體重"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
+          
+          const dietSnap = await getDocs(query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid)));
+          dietSnap.forEach(d => { let obj=d.data(); obj.type="🍱 飲食"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
+          
+          const medSnap = await getDocs(query(collection(db, "med_logs"), where("uid", "==", auth.currentUser.uid)));
+          medSnap.forEach(d => { let obj=d.data(); obj.type="💊 吃藥"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
+
+          const journalSnap = await getDocs(query(collection(db, "journal_logs"), where("uid", "==", auth.currentUser.uid)));
+          journalSnap.forEach(d => { let obj=d.data(); obj.type="📝 日子"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
+          
+          allData.sort((a,b) => b.ts - a.ts); 
+          
+          let csvContent = "\uFEFF分類,日期,時間,數值,備註\n";
+          allData.forEach(data => {
+              let dObj = data.timestamp ? data.timestamp.toDate() : new Date(data.date);
+              let timeStr = data.timeStr ? data.timeStr : (dObj.getHours().toString().padStart(2, '0') + ':' + dObj.getMinutes().toString().padStart(2, '0'));
+              let val = data.amount ? `${data.amount} ml` : (data.weight ? `${data.weight} kg` : "");
+              
+              let tagStr = data.tag ? `[${data.tag}] ` : (data.category ? `[${data.category}] ` : "");
+              let note = data.itemName || data.meal || data.med || data.text || "";
+              note = `"${tagStr}${note.replace(/"/g, '""').replace(/\n/g, ' ')}"`; 
+              
+              csvContent += `${data.type},${data.date},${timeStr},${val},${note}\n`;
+          });
+          
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const link = document.createElement("a");
+          const url = URL.createObjectURL(blob);
+          link.setAttribute("href", url);
+          link.setAttribute("download", `健康記錄_${getTodayString()}.csv`);
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          btn.innerText = originalText;
+      } catch (error) {
+          console.error(error);
+          alert("匯出失敗，請確認網路連線。");
+          btn.innerText = originalText;
+      }
+  };
 
 </script>
 </body>
