@@ -117,7 +117,7 @@
         .top5-time { font-weight: bold; color: #db2777; float: right; }
         .chart-wrapper { position: relative; height: 250px; width: 100%; }
 
-        /* 🌟 成就系統專屬樣式 */
+        /* 成就系統專屬樣式 */
         .achievement-item { background: #fff9fa; padding: 15px; border-radius: 18px; margin-bottom: 15px; border: 1px solid #ffe4e8; text-align: left; display: flex; align-items: center; gap: 15px; }
         .achievement-icon-circle { width: 60px; height: 60px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; border: 3px solid #ffb6c1; flex-shrink: 0; box-shadow: 0 4px 10px rgba(255,182,193,0.2); }
         .achievement-info { flex: 1; min-width: 0; }
@@ -181,6 +181,10 @@
             <h1>💧 新增記錄</h1>
             <div class="progress-circle"><span class="current-ml" id="recordTotalAmount">0</span><span class="label">ml</span></div>
             
+            <div class="btn-group">
+                <button class="btn btn-add-special" onclick="addWater(473, 'Fellow')">Fellow 473 ml</button>
+                <button class="btn btn-add-special" onclick="addWater(700, '大象杯')">大象杯 700 ml</button>
+            </div>
             <div class="btn-group" id="customBtnGroup"></div>
             
             <div class="btn-group">
@@ -306,7 +310,7 @@
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <input type="time" id="journalTime" style="flex: 1;">
                 <select id="journalCategory" style="flex: 1;">
-                    </select>
+                </select>
                 <button class="btn btn-custom" style="flex: 0 0 40px; padding: 0; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;" onclick="manageJournalCategories()">⚙️</button>
             </div>
             
@@ -479,10 +483,7 @@
   const db = getFirestore(app);
   const auth = getAuth(app);
 
-  const defaultWaterBtns = [
-      { name: 'Fellow', amount: 473 },
-      { name: '大象杯', amount: 700 }
-  ];
+  const defaultWaterBtns = [];
   const defaultDietBtns = {
       drinks: ['☕ 咖啡', '🍵 無糖茶', '🧋 手搖飲'],
       meals: ['👩‍🍳 媽媽食物', '🍝 義大利麵', '🍛 燉飯', '🍜 拉麵', '🍣 壽司', '🍲 火鍋', '🐟 酸菜魚', '🍢 夜市'],
@@ -503,8 +504,8 @@
       { name: '初心者', threshold: 1, icon: '🌱' },
       { name: '冒險家', threshold: 10, icon: '🧭' },
       { name: '研究員', threshold: 30, icon: '🧪' },
-      { name: '精通者', threshold: 60, icon: '🎖️' },
-      { name: '掌控者', threshold: 100, icon: '👑' }
+      { name: '精通者', threshold: 70, icon: '🎖️' },
+      { name: '掌控者', threshold: 150, icon: '👑' }
   ];
 
   window.currentDocs = [];
@@ -594,13 +595,13 @@
           let progressPercent = 0;
 
           if (count >= rankConfig[rankConfig.length - 1].threshold) {
-              const maxThreshold = rankConfig[rankConfig.length - 1].threshold;
+              const maxThreshold = rankConfig[rankConfig.length - 1].threshold; 
               const rounds = Math.floor(count / maxThreshold);
               const remainder = count % maxThreshold;
               
               currentRank = rankConfig[rankConfig.length - 1];
               displayRankName = rounds > 1 ? `${currentRank.name}+${rounds}` : currentRank.name;
-              nextRankThreshold = (rounds + 1) * maxThreshold;
+              nextRankThreshold = (rounds + 1) * maxThreshold; 
               progressPercent = (remainder / maxThreshold) * 100;
           } else {
               for (let i = rankConfig.length - 1; i >= 0; i--) {
@@ -667,10 +668,10 @@
       const pwd = document.getElementById('pwdInput').value;
       const btn = document.getElementById('registerBtn');
       if(!email || !pwd) { alert("請輸入信箱與密碼！"); return; }
-      if(pwd.length < 6) { alert("⚠️ Firebase 規定密碼至少需要 6 個字元喔！"); return; }
+      if(pwd.length < 6) { alert("⚠️ 密碼至少需要 6 個字元喔！"); return; }
       btn.innerText = "註冊中...";
       createUserWithEmailAndPassword(auth, email, pwd)
-          .then(() => { alert("🎉 註冊成功！系統已自動為您登入。"); btn.innerText = "📝 註冊新帳號"; document.getElementById('pwdInput').value = ''; })
+          .then(() => { alert("🎉 註冊成功！已自動登入。"); btn.innerText = "📝 註冊新帳號"; document.getElementById('pwdInput').value = ''; })
           .catch((error) => {
               if(error.code === 'auth/email-already-in-use') { alert("⚠️ 這個信箱已經註冊過囉！"); } 
               else { alert("⚠️ 註冊失敗：" + error.message); }
@@ -691,7 +692,7 @@
       document.getElementById(tabName + 'Page').classList.add('active');
       const tabBtn = document.getElementById('tab-' + tabName);
       if(tabBtn) tabBtn.classList.add('active');
-      if (tabName === 'calendar') { loadMonthlyChart(); window.fetchHistoryByDate(); } 
+      if (tabName === 'calendar') { window.loadMonthlyChart(); window.fetchHistoryByDate(); } 
       else if (tabName === 'weight') { window.loadWeightData(); }
       else if (tabName === 'diet') { window.loadDietData(); }
       else if (tabName === 'med') { window.loadMedData(); } 
@@ -734,11 +735,12 @@
               total += data.amount;
               let timeStr = '--:--';
               if (data.timestamp) { const dateObj = data.timestamp.toDate(); timeStr = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`; }
-              html += `<div class="log-item"><div><span class="log-time">${timeStr}</span> <span class="log-name">${data.itemName || ''}</span></div><span style="color: var(--primary-dark); font-weight:bold;">${data.amount} ml</span></div>`;
+              let itemName = data.itemName ? `<span class="log-name">${data.itemName}</span>` : '';
+              html += `<div class="log-item"><div><span class="log-time">${timeStr}</span> ${itemName}</div><span style="color: var(--primary-dark); font-weight:bold;">${data.amount} ml</span></div>`;
           });
           document.getElementById('homeTotalAmount').innerText = total;
           document.getElementById('recordTotalAmount').innerText = total;
-          document.getElementById('logList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">今天還沒喝水喔！</div>';
+          document.getElementById('logList').innerHTML = html || '<div style="text-align:center; color:var(--text-light); padding:10px;">今天還沒喝水喔，趕快喝一杯吧！</div>';
           let percentage = (total / 2000) * 100;
           if (percentage > 100) percentage = 100;
           document.getElementById('homeProgress').style.background = `conic-gradient(var(--primary) ${percentage}%, #fff5f7 0%)`;
@@ -766,6 +768,7 @@
               else { alert("這個分類已經存在囉！"); }
           }
       } else if (action === '2') {
+          if (cats.length === 0) { alert("沒有分類可以刪除！"); return; }
           let promptText = "請輸入要刪除的「數字編號」：\n\n";
           cats.forEach((c, index) => { promptText += `${index + 1}. ${c}\n`; });
           let choice = prompt(promptText);
@@ -831,14 +834,16 @@
       timelineEl.style.height = (lastTop + 100) + 'px';
       const sorted = [...events].sort((a, b) => b.duration - a.duration).slice(0, 5);
       document.getElementById('top5-container').innerHTML = sorted.map(ev => `<li>${ev.text} <span class="top5-time">${ev.duration} min</span></li>`).join('');
+      
       const categoryData = {};
       events.forEach(ev => { categoryData[ev.category] = (categoryData[ev.category] || 0) + ev.duration; });
       const labels = Object.keys(categoryData);
+      
       if (window.pieChartInstance) window.pieChartInstance.destroy();
       window.pieChartInstance = new Chart(document.getElementById('pieChart').getContext('2d'), {
           type: 'doughnut',
           data: { labels, datasets: [{ data: labels.map(l => categoryData[l]), backgroundColor: labels.map((_, i) => `hsl(${i * 137.5}, 70%, 60%)`), borderWidth: 2, borderColor: '#ffffff' }] },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { family: '-apple-system, sans-serif' } } } } }
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
       });
   }
 
@@ -1059,7 +1064,7 @@
       const res = document.getElementById('gachaResult'); res.innerText = "🤔";
       const snap = await getDocs(query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid)));
       const foods = []; snap.forEach(d => foods.push(...d.data().meal.split('+').map(f => f.trim())));
-      const filtered = [...new Set(foods.filter(f => f && !f.includes('咖啡') && !f.includes('茶')))];
+      const filtered = [...new Set(foods.filter(f => f && !f.includes('咖啡') && !f.includes('茶') && !f.includes('手搖') && !f.includes('水')))];
       setTimeout(() => {
           const winner = filtered.length ? filtered[Math.floor(Math.random() * filtered.length)] : "火鍋 🍲";
           res.innerText = winner; confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
@@ -1085,7 +1090,7 @@
               const mm = dObj.getMinutes().toString().padStart(2, '0');
               dateStr = `${m}/${day} ${dow} ${hh}:${mm}`;
           }
-          return `<div class="log-item" style="flex-wrap: wrap;"><span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${dateStr}</span><span style="font-weight:bold;">${d.meal}</span></div>`;
+          return `<div class="log-item" style="flex-wrap: wrap;"><span class="log-time" style="width: 100%; font-size: 0.8em; margin-bottom: 4px;">${dateStr}</span><span style="font-weight:bold; var(--text-dark);">${d.meal}</span></div>`;
       }).join('') || '<div style="text-align:center; padding:10px;">找不到記錄</div>';
   };
 
@@ -1106,7 +1111,8 @@
               const dateObj = data.timestamp.toDate();
               timeStr = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
           }
-          waterHtml += `<div class="log-item"><div><span class="log-time">${timeStr}</span> <span class="log-name">${data.itemName || ''}</span></div><span style="color: var(--primary-dark); font-weight:bold;">${data.amount} ml</span></div>`;
+          let itemName = data.itemName ? `<span class="log-name">${data.itemName}</span>` : '';
+          waterHtml += `<div class="log-item"><div><span class="log-time">${timeStr}</span> ${itemName}</div><span style="color: var(--primary-dark); font-weight:bold;">${data.amount} ml</span></div>`;
       });
       document.getElementById('historyTotal').innerText = `${waterTotal} ml`;
       document.getElementById('historyLogList').innerHTML = waterHtml || '<div style="text-align:center; color:var(--text-light); padding:10px;">無喝水記錄</div>';
@@ -1130,8 +1136,8 @@
               if (index + 1 < allWeightDocs.length) {
                   let prevLog = allWeightDocs[index + 1];
                   let diff = parseFloat((data.weight - prevLog.weight).toFixed(1));
-                  if (diff < 0) diffHtml = `<span style="color: #27ae60; font-size: 0.7em; white-space: nowrap; margin-left: 5px;">(⬇️ ${Math.abs(diff)}kg)</span>`;
-                  else if (diff > 0) diffHtml = `<span style="color: #c0392b; font-size: 0.7em; white-space: nowrap; margin-left: 5px;">(⬆️ ${diff}kg)</span>`;
+                  if (diff < 0) diffHtml = `<span style="color: #27ae60; font-size: 0.7em; white-space: nowrap; margin-left: 5px;">(⬇️ 瘦了 ${Math.abs(diff)}kg)</span>`;
+                  else if (diff > 0) diffHtml = `<span style="color: #c0392b; font-size: 0.7em; white-space: nowrap; margin-left: 5px;">(⬆️ 胖了 ${diff}kg)</span>`;
                   else diffHtml = `<span style="color: var(--text-light); font-size: 0.7em; white-space: nowrap; margin-left: 5px;">(持平)</span>`;
               }
               
@@ -1219,81 +1225,6 @@
           type: 'bar', data: { labels: labels.length > 0 ? labels : ['尚未有記錄'], datasets: [{ label: '每日喝水量 (ml)', data: dataPoints.length > 0 ? dataPoints : [0], backgroundColor: '#ffb6c1', borderColor: '#ff8da1', borderWidth: 1, borderRadius: 6 }] },
           options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
       });
-  };
-
-  window.openRetroModal = (type) => {
-      window.retroType = type; document.getElementById('retroModal').classList.add('active');
-      const inputs = ['retroWater', 'retroWeight', 'retroDiet', 'retroMed'];
-      inputs.forEach(id => document.getElementById(id).style.display = 'none');
-      document.getElementById('retro' + type.charAt(0).toUpperCase() + type.slice(1)).style.display = 'block';
-  };
-  window.closeRetroModal = () => { document.getElementById('retroModal').classList.remove('active'); };
-  window.saveRetroRecord = async () => {
-      const rDate = document.getElementById('retroDate').value; if (!rDate) return;
-      const ts = Timestamp.fromDate(new Date(rDate + "T12:00:00"));
-      const btn = document.getElementById('retroSaveBtn'); btn.innerText = "儲存中...";
-      try {
-          if (window.retroType === 'water') await addDoc(collection(db, "water_logs"), { amount: parseInt(document.getElementById('retroWater').value), itemName: '📅 補登', date: rDate, timestamp: ts, uid: auth.currentUser.uid });
-          else if (window.retroType === 'weight') await addDoc(collection(db, "weight_logs"), { weight: parseFloat(document.getElementById('retroWeight').value), date: rDate, timestamp: ts, uid: auth.currentUser.uid });
-          else if (window.retroType === 'diet') await addDoc(collection(db, "diet_logs"), { meal: document.getElementById('retroDiet').value, date: rDate, timestamp: ts, uid: auth.currentUser.uid });
-          else if (window.retroType === 'med') await addDoc(collection(db, "med_logs"), { med: document.getElementById('retroMed').value, date: rDate, timestamp: ts, uid: auth.currentUser.uid });
-          alert("✅ 補登成功"); window.closeRetroModal();
-      } catch(e) { alert("儲存失敗"); } finally { btn.innerText = "確認補登"; }
-  };
-
-  window.exportToCSV = async (event) => {
-      const btn = event.target;
-      const originalText = btn.innerText;
-      btn.innerText = "📥 資料整理中...";
-      
-      try {
-          let allData = [];
-          const waterSnap = await getDocs(query(collection(db, "water_logs"), where("uid", "==", auth.currentUser.uid)));
-          waterSnap.forEach(d => { let obj=d.data(); obj.type="💧 喝水"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
-          
-          const weightSnap = await getDocs(query(collection(db, "weight_logs"), where("uid", "==", auth.currentUser.uid)));
-          weightSnap.forEach(d => { let obj=d.data(); obj.type="⚖️ 體重"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
-          
-          const dietSnap = await getDocs(query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid)));
-          dietSnap.forEach(d => { let obj=d.data(); obj.type="🍱 飲食"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
-          
-          const medSnap = await getDocs(query(collection(db, "med_logs"), where("uid", "==", auth.currentUser.uid)));
-          medSnap.forEach(d => { let obj=d.data(); obj.type="💊 吃藥"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
-
-          const journalSnap = await getDocs(query(collection(db, "journal_logs"), where("uid", "==", auth.currentUser.uid)));
-          journalSnap.forEach(d => { let obj=d.data(); obj.type="📝 日子"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
-          
-          allData.sort((a,b) => b.ts - a.ts); 
-          
-          let csvContent = "\uFEFF分類,日期,時間,數值,備註\n";
-          allData.forEach(data => {
-              let dObj = data.timestamp ? data.timestamp.toDate() : new Date(data.date);
-              let timeStr = data.timeStr ? data.timeStr : (dObj.getHours().toString().padStart(2, '0') + ':' + dObj.getMinutes().toString().padStart(2, '0'));
-              let val = data.amount ? `${data.amount} ml` : (data.weight ? `${data.weight} kg` : "");
-              
-              let tagStr = data.tag ? `[${data.tag}] ` : (data.category ? `[${data.category}] ` : "");
-              let note = data.itemName || data.meal || data.med || data.text || "";
-              note = `"${tagStr}${note.replace(/"/g, '""').replace(/\n/g, ' ')}"`; 
-              
-              csvContent += `${data.type},${data.date},${timeStr},${val},${note}\n`;
-          });
-          
-          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-          const link = document.createElement("a");
-          const url = URL.createObjectURL(blob);
-          link.setAttribute("href", url);
-          link.setAttribute("download", `健康記錄_${getTodayString()}.csv`);
-          link.style.visibility = 'hidden';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          
-          btn.innerText = originalText;
-      } catch (error) {
-          console.error(error);
-          alert("匯出失敗，請確認網路連線。");
-          btn.innerText = originalText;
-      }
   };
 
 </script>
