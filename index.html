@@ -1227,6 +1227,97 @@
       });
   };
 
+  window.openRetroModal = (type) => {
+      window.retroType = type; 
+      document.getElementById('retroModal').classList.add('active');
+      const dInput = document.getElementById('retroDate');
+      if (dInput) { dInput.max = getTodayString(); dInput.value = getTodayString(); }
+      
+      const inputs = ['retroWater', 'retroWeight', 'retroDiet', 'retroMed'];
+      inputs.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = 'none';
+      });
+      
+      const targetId = 'retro' + type.charAt(0).toUpperCase() + type.slice(1);
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) targetEl.style.display = 'block';
+      
+      const title = document.getElementById('retroModalTitle');
+      if (title) {
+          if(type === 'water') title.innerText = '💧 補登喝水';
+          if(type === 'weight') title.innerText = '⚖️ 補登體重';
+          if(type === 'diet') title.innerText = '🍱 補登飲食';
+          if(type === 'med') title.innerText = '💊 補登用藥';
+      }
+  };
+
+  window.closeRetroModal = () => { document.getElementById('retroModal').classList.remove('active'); };
+
+  window.saveRetroRecord = async () => {
+      const rDate = document.getElementById('retroDate').value; 
+      if (!rDate) { alert("請選擇日期！"); return; }
+      const ts = Timestamp.fromDate(new Date(rDate + "T12:00:00"));
+      const btn = document.getElementById('retroSaveBtn'); btn.innerText = "儲存中...";
+      try {
+          if (window.retroType === 'water') await addDoc(collection(db, "water_logs"), { amount: parseInt(document.getElementById('retroWater').value), itemName: '📅 補登', date: rDate, timestamp: ts, uid: auth.currentUser.uid });
+          else if (window.retroType === 'weight') await addDoc(collection(db, "weight_logs"), { weight: parseFloat(document.getElementById('retroWeight').value), date: rDate, timestamp: ts, uid: auth.currentUser.uid });
+          else if (window.retroType === 'diet') await addDoc(collection(db, "diet_logs"), { meal: document.getElementById('retroDiet').value, date: rDate, timestamp: ts, uid: auth.currentUser.uid });
+          else if (window.retroType === 'med') await addDoc(collection(db, "med_logs"), { med: document.getElementById('retroMed').value, date: rDate, timestamp: ts, uid: auth.currentUser.uid });
+          alert("✅ 補登成功"); window.closeRetroModal();
+      } catch(e) { alert("儲存失敗"); } finally { btn.innerText = "確認補登"; }
+  };
+
+  window.exportToCSV = async (event) => {
+      const btn = event.target;
+      const originalText = btn.innerText;
+      btn.innerText = "📥 資料整理中...";
+      try {
+          let allData = [];
+          const waterSnap = await getDocs(query(collection(db, "water_logs"), where("uid", "==", auth.currentUser.uid)));
+          waterSnap.forEach(d => { let obj=d.data(); obj.type="💧 喝水"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
+          
+          const weightSnap = await getDocs(query(collection(db, "weight_logs"), where("uid", "==", auth.currentUser.uid)));
+          weightSnap.forEach(d => { let obj=d.data(); obj.type="⚖️ 體重"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
+          
+          const dietSnap = await getDocs(query(collection(db, "diet_logs"), where("uid", "==", auth.currentUser.uid)));
+          dietSnap.forEach(d => { let obj=d.data(); obj.type="🍱 飲食"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
+          
+          const medSnap = await getDocs(query(collection(db, "med_logs"), where("uid", "==", auth.currentUser.uid)));
+          medSnap.forEach(d => { let obj=d.data(); obj.type="💊 吃藥"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
+
+          const journalSnap = await getDocs(query(collection(db, "journal_logs"), where("uid", "==", auth.currentUser.uid)));
+          journalSnap.forEach(d => { let obj=d.data(); obj.type="📝 日子"; obj.ts = obj.timestamp?obj.timestamp.toDate().getTime():0; allData.push(obj); });
+          
+          allData.sort((a,b) => b.ts - a.ts); 
+          
+          let csvContent = "\uFEFF分類,日期,時間,數值,備註\n";
+          allData.forEach(data => {
+              let dObj = data.timestamp ? data.timestamp.toDate() : new Date(data.date);
+              let timeStr = data.timeStr ? data.timeStr : (dObj.getHours().toString().padStart(2, '0') + ':' + dObj.getMinutes().toString().padStart(2, '0'));
+              let val = data.amount ? `${data.amount} ml` : (data.weight ? `${data.weight} kg` : "");
+              let tagStr = data.tag ? `[${data.tag}] ` : (data.category ? `[${data.category}] ` : "");
+              let note = data.itemName || data.meal || data.med || data.text || "";
+              note = `"${tagStr}${note.replace(/"/g, '""').replace(/\n/g, ' ')}"`; 
+              csvContent += `${data.type},${data.date},${timeStr},${val},${note}\n`;
+          });
+          
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const link = document.createElement("a");
+          const url = URL.createObjectURL(blob);
+          link.setAttribute("href", url);
+          link.setAttribute("download", `健康記錄_${getTodayString()}.csv`);
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          btn.innerText = originalText;
+      } catch (error) {
+          alert("匯出失敗，請確認網路連線。");
+          btn.innerText = originalText;
+      }
+  };
+
 </script>
 </body>
 </html>
